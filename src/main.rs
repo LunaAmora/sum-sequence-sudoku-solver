@@ -1,25 +1,26 @@
 #![allow(dead_code)]
 
+mod combinations;
+mod sums;
+
+use combinations::compute_solutions;
 use indexmap::IndexMap;
-
-struct Sum<T>(Vec<T>);
-
-type Pair = (usize, usize);
-type Triplet = (usize, usize, usize);
+use sums::*;
 
 fn main() {
+    let pair_sums = pair_sums();
     let triplet_sums = triplet_sums();
-    let triplet_map = get_triplet_map(triplet_sums);
+
+    let mut triplet_map = get_triplet_map(triplet_sums);
     let pairs_sequence = get_pairs_sequence(&triplet_map);
 
-    let pair_sums = pair_sums(); // to access sums from their value, use pair_sums[sum - 3]
+    filter_triplets(&mut triplet_map, &pairs_sequence, &pair_sums);
 
-    for seq in pairs_sequence.values() {
-        // I have 16 items of length 12
-        // each sequence corresponds to a triplet sum (from 6 to 17) of the digits 1-9
-        // I want to check if its possibe to choose specific combinations of pairs from pair_sums
-        // such that 3 digits appears exactly 4 times, and the rest appears exactly 2 times
-    }
+    let pairs_sequence = get_pairs_sequence(&triplet_map);
+
+    // print_triple_map(&triplet_map);
+    // print_pairs_sequence(&pairs_sequence);
+    print_solutions(&pairs_sequence, &pair_sums);
 }
 
 fn get_triplet_map(triplet_sums: Vec<Sum<Triplet>>) -> IndexMap<Triplet, Vec<(Triplet, Triplet, Triplet)>> {
@@ -63,9 +64,9 @@ fn find_unique_triplets(s1: &Sum<Triplet>, s2: &Sum<Triplet>, s3: &Sum<Triplet>)
     res
 }
 
-fn print_triple_map(res: &IndexMap<Triplet, Vec<(Triplet, Triplet, Triplet)>>) {
-    for ((s1, s2, s3), triplets) in res {
-        println!("|{s1} {s2} {s3}|");
+fn print_triple_map(triplet_map: &IndexMap<Triplet, Vec<(Triplet, Triplet, Triplet)>>) {
+    for ((s1, s2, s3), triplets) in triplet_map {
+        println!("({s1}, {s2}, {s3})");
         for ((a1, a2, a3), (b1, b2, b3), (c1, c2, c3)) in triplets {
             println!(" {}{}{} {}{}{} {}{}{}", a1, a2, a3, b1, b2, b3, c1, c2, c3);
         }
@@ -107,47 +108,44 @@ fn get_pairs_sequence(
 
 fn print_pairs_sequence(pairs_sequence: &IndexMap<(usize, usize, usize), [usize; 12]>) {
     for (key, sequence) in pairs_sequence {
-        let (a, b, c) = key;
-        println!("|{} {} {}| = {:?}", a, b, c, sequence);
+        let key = format!("{:?}", key);
+        println!("{:12} = {:2?}", key, sequence);
     }
 }
 
-fn triplet_sums() -> Vec<Sum<Triplet>> {
-    vec![
-        Sum(vec![(1, 2, 3)]),
-        Sum(vec![(1, 2, 4)]),
-        Sum(vec![(1, 2, 5), (1, 3, 4)]),
-        Sum(vec![(1, 2, 6), (1, 3, 5), (2, 3, 4)]),
-        Sum(vec![(1, 2, 7), (1, 3, 6), (1, 4, 5), (2, 3, 5)]),
-        Sum(vec![(1, 2, 8), (1, 3, 7), (1, 4, 6), (2, 3, 6), (2, 4, 5)]),
-        Sum(vec![(1, 2, 9), (1, 3, 8), (1, 4, 7), (1, 5, 6), (2, 3, 7), (2, 4, 6), (3, 4, 5)]),
-        Sum(vec![(1, 3, 9), (1, 4, 8), (1, 5, 7), (2, 3, 8), (2, 4, 7), (2, 5, 6), (3, 4, 6)]),
-        Sum(vec![(1, 4, 9), (1, 5, 8), (1, 6, 7), (2, 3, 9), (2, 4, 8), (2, 5, 7), (3, 4, 7), (3, 5, 6)]),
-        Sum(vec![(1, 5, 9), (1, 6, 8), (2, 4, 9), (2, 5, 8), (2, 6, 7), (3, 4, 8), (3, 5, 7), (4, 5, 6)]),
-        Sum(vec![(1, 6, 9), (1, 7, 8), (2, 5, 9), (2, 6, 8), (3, 4, 9), (3, 5, 8), (3, 6, 7), (4, 5, 7)]),
-        Sum(vec![(1, 7, 9), (2, 6, 9), (2, 7, 8), (3, 5, 9), (3, 6, 8), (4, 5, 9), (4, 6, 7)]),
-        Sum(vec![(1, 8, 9), (2, 7, 9), (3, 6, 9), (3, 7, 8), (4, 5, 8), (4, 6, 7)]),
-        Sum(vec![(2, 8, 9), (3, 7, 9), (4, 6, 9), (4, 7, 8)]),
-        Sum(vec![(3, 8, 9), (4, 7, 9), (5, 6, 9), (5, 7, 8)]),
-    ]
+fn filter_triplets(
+    triplet_map: &mut IndexMap<Triplet, Vec<(Triplet, Triplet, Triplet)>>,
+    pairs_sequence: &IndexMap<(usize, usize, usize), [usize; 12]>,
+    pair_sums: &[Sum<(usize, usize)>],
+) {
+    for (tripplet, seq) in pairs_sequence {
+        let solutions = compute_solutions(seq, pair_sums);
+        if solutions.is_empty() {
+            triplet_map.shift_remove(tripplet);
+        }
+    }
 }
 
-fn pair_sums() -> Vec<Sum<Pair>> {
-    vec![
-        Sum(vec![(1, 2)]),
-        Sum(vec![(1, 3)]),
-        Sum(vec![(1, 4), (2, 3)]),
-        Sum(vec![(1, 5), (2, 4)]),
-        Sum(vec![(1, 6), (2, 5), (3, 4)]),
-        Sum(vec![(1, 7), (2, 6), (3, 5)]),
-        Sum(vec![(1, 8), (2, 7), (3, 6), (4, 5)]),
-        Sum(vec![(1, 9), (2, 8), (3, 7), (4, 6)]),
-        Sum(vec![(2, 9), (3, 8), (4, 7), (5, 6)]),
-        Sum(vec![(3, 9), (4, 8), (5, 7)]),
-        Sum(vec![(4, 9), (5, 8), (6, 7)]),
-        Sum(vec![(5, 9), (6, 8)]),
-        Sum(vec![(6, 9), (7, 8)]),
-        Sum(vec![(7, 9)]),
-        Sum(vec![(8, 9)]),
-    ]
+fn print_solutions(pairs_sequence: &IndexMap<(usize, usize, usize), [usize; 12]>, pair_sums: &[Sum<(usize, usize)>]) {
+    for (tripplet, seq) in pairs_sequence {
+        let solutions = compute_solutions(seq, pair_sums);
+        if !solutions.is_empty() {
+            println!(
+                "✓ Found {} valid combination(s) for triplet {:?} with sequence {:?}",
+                solutions.len(),
+                tripplet,
+                seq
+            );
+            for (i, solution) in solutions.iter().enumerate() {
+                let mut digit_count = [0; 9];
+                for (a, b) in solution {
+                    digit_count[a - 1] += 1;
+                    digit_count[b - 1] += 1;
+                }
+                let duplicated: Vec<usize> = (0..9).filter(|&digit| digit_count[digit] == 4).map(|i| i + 1).collect();
+                println!("  Solution {:2} {:?}: {}", i + 1, duplicated, Sum(solution.to_vec()));
+            }
+        }
+        println!();
+    }
 }
