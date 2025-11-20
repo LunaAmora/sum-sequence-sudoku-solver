@@ -4,7 +4,7 @@ use super::Sum;
 pub fn compute_solutions(sequence: &[usize; 12], pair_sums: &[Sum<Pair>]) -> Vec<([Pair; 6], [Pair; 6])> {
     // Try all possible combinations of selecting one pair from each sum in the sequence
     let pair_options: [&Vec<Pair>; 12] =
-        sequence.iter().map(|&sum_value| &pair_sums[sum_value - 3].0).collect::<Vec<&Vec<Pair>>>().try_into().unwrap();
+        sequence.iter().map(|&sum_value| &pair_sums[sum_value - 4].0).collect::<Vec<&Vec<Pair>>>().try_into().unwrap();
 
     // Use backtracking to find all valid combinations
     let mut all_solutions = Vec::new();
@@ -53,13 +53,12 @@ fn check_frequency_constraint(pairs: &[Pair]) -> bool {
         digit_count[b - 1] += 1;
     }
 
-    // Count how many digits appear exactly 4 times and exactly 2 times
-    let mut count_4 = 0;
+    let mut dup_sum = 0;
     let mut count_2 = 0;
 
-    for &count in &digit_count[0..9] {
+    for (i, count) in digit_count.iter().enumerate() {
         match count {
-            4 => count_4 += 1,
+            4 => dup_sum += i + 1,
             2 => count_2 += 1,
             0 => return false,
             _ => return false,
@@ -67,7 +66,7 @@ fn check_frequency_constraint(pairs: &[Pair]) -> bool {
     }
 
     // We need exactly 3 digits appearing 4 times, 6 digits appearing 2 times
-    count_4 == 3 && count_2 == 6
+    count_2 == 6 && dup_sum == 15
 }
 
 /// Splits a Vec<Pair> into 2 groups of 6 pairs each, maintaining frequency constraints.

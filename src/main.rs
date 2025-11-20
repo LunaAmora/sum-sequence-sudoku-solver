@@ -28,21 +28,13 @@ type CornerTriplets = [Triplet; 3];
 fn get_triplet_map(triplet_sums: Vec<Sum<Triplet>>) -> IndexMap<Triplet, Vec<CornerTriplets>> {
     let mut res: IndexMap<_, Vec<CornerTriplets>> = IndexMap::new();
 
-    for i in 0..triplet_sums.len() {
-        for j in (i + 1)..triplet_sums.len() {
-            for k in (j + 1)..triplet_sums.len() {
-                if k == 14 && (j != 13 || i != 12) {
-                    continue;
-                }
-                if k == 13 && j != 12 {
-                    continue;
-                }
-
-                let triplets = find_unique_triplets(&triplet_sums[i], &triplet_sums[j], &triplet_sums[k]);
-                for [a, b, c] in triplets {
-                    let e = [i + 6, j + 6, k + 6];
-                    res.entry(e).or_default().push([a, b, c]);
-                }
+    for i in 0..triplet_sums.len() - 1 {
+        for j in (i + 1)..triplet_sums.len() - 1 {
+            let k = 12;
+            let triplets = find_unique_triplets(&triplet_sums[i], &triplet_sums[j], &triplet_sums[k]);
+            for [a, b, c] in triplets {
+                let e = [i + 6, j + 6, k + 6];
+                res.entry(e).or_default().push([a, b, c]);
             }
         }
     }
@@ -131,7 +123,7 @@ fn print_solutions(pairs_sequence: &IndexMap<Triplet, [usize; 12]>, pair_sums: &
         let solutions = compute_solutions(seq, pair_sums);
         if !solutions.is_empty() {
             println!(
-                "✓ Found {} valid combination(s) for triplet {:?} with sum sequence {:?}",
+                "Found {} valid combination(s) for triplet {:?} with sum sequence {:?}",
                 solutions.len(),
                 tripplet,
                 seq
