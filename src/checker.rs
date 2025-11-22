@@ -1,56 +1,121 @@
 use super::Pair;
 
-const CONSTRAINTS: [[u8; 24]; 24] = [
-    // 2, 4, 6, 7, 12, 13
-    [0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    // 3, 5, 6, 7, 12, 13
-    [0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    // 0, 4, 8, 9
-    [1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    // 1, 5, 8, 9, 13, 17, 20, 21
-    [0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0],
-    // 0, 2, 10, 11, 18, 19
-    [1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
-    // 1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 15, 18, 19, 20, 22, 23
-    [0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1],
-    // 0, 1, 8, 10, 16, 17
-    [1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
-    // 0, 1, 9, 11, 16, 17
-    [1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
-    // 2, 3, 6, 10, 14, 15, 18, 22
-    [0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0],
-    // 2, 3, 7, 11
-    [0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    // 4, 5, 6, 8, 22, 23
-    [0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
-    // 4, 5, 7, 9, 22, 23
-    [0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
-    // 0, 1, 14, 16, 18, 19
-    [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0],
-    // other set
-    // 0, 1, 15, 17, 18, 19
-    [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0],
-    // 12, 16, 20, 21
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0],
-    // 1, 5, 8, 9, 13, 17, 20, 21
-    [0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0],
-    // 6, 7, 12, 14, 22, 23
-    [0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1],
-    // 1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 15, 18, 19, 20, 22, 23
-    [0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1],
-    // 4, 5, 12, 13, 20, 22
-    [0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0],
-    // 4, 5, 12, 13, 21, 23
-    [0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
-    // 2, 3, 6, 10, 14, 15, 18, 22
-    [0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0],
-    // 14, 15, 19, 23
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1],
-    // 10, 11, 16, 17, 18, 20
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0],
-    // 10, 11, 16, 17, 19, 21
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0],
+#[rustfmt::skip]
+const CONSTRAINT_MASKS: [u32; 24] = [
+    1<<2  | 1<<4  | 1<<6  | 1<<7  | 1<<12 | 1<<13,
+    1<<3  | 1<<5  | 1<<6  | 1<<7  | 1<<12 | 1<<13,
+    1<<0  | 1<<4  | 1<<5  | 1<<8  | 1<<9  | 1<<17,
+    1<<1  | 1<<5  | 1<<8  | 1<<9  | 1<<13 | 1<<17 | 1<<20 | 1<<21,
+    1<<0  | 1<<2  | 1<<10 | 1<<11 | 1<<18 | 1<<19,
+    1<<1  | 1<<2  | 1<<3  | 1<<6  | 1<<7  | 1<<8  | 1<<9  | 1<<10 | 1<<11 | 1<<12 | 1<<13 | 1<<15 | 1<<18 | 1<<19 | 1<<20 | 1<<22 | 1<<23,
+    1<<0  | 1<<1  | 1<<8  | 1<<10 | 1<<16 | 1<<17,
+    1<<0  | 1<<1  | 1<<9  | 1<<11 | 1<<16 | 1<<17,
+    1<<2  | 1<<3  | 1<<6  | 1<<10 | 1<<14 | 1<<15 | 1<<18 | 1<<22,
+    1<<2  | 1<<3  | 1<<7  | 1<<11,
+    1<<4  | 1<<5  | 1<<6  | 1<<8  | 1<<22 | 1<<23,
+    1<<4  | 1<<5  | 1<<7  | 1<<9  | 1<<22 | 1<<23,
+    1<<0  | 1<<1  | 1<<14 | 1<<16 | 1<<18 | 1<<19,
+    1<<0  | 1<<1  | 1<<15 | 1<<17 | 1<<18 | 1<<19,
+    1<<12 | 1<<16 | 1<<20 | 1<<21,
+    1<<1  | 1<<5  | 1<<8  | 1<<9  | 1<<13 | 1<<17 | 1<<20 | 1<<21,
+    1<<6  | 1<<7  | 1<<12 | 1<<14 | 1<<22 | 1<<23,
+    1<<1  | 1<<2  | 1<<3  | 1<<6  | 1<<7  | 1<<8  | 1<<9  | 1<<10 | 1<<11 | 1<<12 | 1<<13 | 1<<15 | 1<<18 | 1<<19 | 1<<20 | 1<<22 | 1<<23,
+    1<<4  | 1<<5  | 1<<12 | 1<<13 | 1<<20 | 1<<22,
+    1<<4  | 1<<5  | 1<<12 | 1<<13 | 1<<21 | 1<<23,
+    1<<2  | 1<<3  | 1<<6  | 1<<10 | 1<<14 | 1<<15 | 1<<18 | 1<<22,
+    1<<14 | 1<<15 | 1<<19 | 1<<23,
+    1<<10 | 1<<11 | 1<<16 | 1<<17 | 1<<18 | 1<<20,
+    1<<10 | 1<<11 | 1<<16 | 1<<17 | 1<<19 | 1<<21,
 ];
+
+pub fn fill_constraints(set: &[Pair], dups: [u16; 3], results: &mut Vec<[[i32; 2]; 12]>) {
+    fill_constraints_internal([[0, 0]; 12], 0, set, dups, results);
+}
+
+fn fill_constraints_internal(
+    current: [[i32; 2]; 12],
+    index: usize,
+    set: &[Pair],
+    dups: [u16; 3],
+    results: &mut Vec<[[i32; 2]; 12]>,
+) {
+    let constraint_a = get_constraint(&current, dups, index * 2);
+    let constraint_b = get_constraint(&current, dups, index * 2 + 1);
+
+    let [a, b] = current[index];
+    let mask_a = if a < 0 { -a as _ } else { 0 };
+    let mask_b = if b < 0 { -b as _ } else { 0 };
+
+    let set_iter = if index < 6 { &set[0..set.len() - 6] } else { set }.iter().enumerate();
+
+    for (i, [x, y]) in set_iter {
+        for [&a, &b] in [[x, y], [y, x]] {
+            if check_constraints_pass(a, b, &constraint_a, &constraint_b, mask_a, mask_b) {
+                let mut new_current = current;
+                new_current[index] = [a.into(), b.into()];
+
+                if index == 11 {
+                    results.push(new_current);
+                    continue;
+                }
+
+                apply_constraints(&mut new_current, index, a, b);
+
+                let mut new_set = set.to_vec();
+                new_set.remove(i);
+
+                fill_constraints_internal(new_current, index + 1, &new_set, dups, results);
+            }
+        }
+    }
+}
+
+fn check_constraints_pass(
+    a: u16,
+    b: u16,
+    pos_constraint_a: &[u16],
+    pos_constraint_b: &[u16],
+    neg_mask_a: u16,
+    neg_mask_b: u16,
+) -> bool {
+    (pos_constraint_a.is_empty() || pos_constraint_a.contains(&a))
+        && (pos_constraint_b.is_empty() || pos_constraint_b.contains(&b))
+        && (neg_mask_a == 0 || (neg_mask_a & (1 << a)) == 0)
+        && (neg_mask_b == 0 || (neg_mask_b & (1 << b)) == 0)
+}
+
+fn apply_constraints(current: &mut [[i32; 2]; 12], index: usize, a: u16, b: u16) {
+    let mask_a = CONSTRAINT_MASKS[index * 2];
+    let mask_b = CONSTRAINT_MASKS[index * 2 + 1];
+
+    for j in 0..24 {
+        if (mask_a & (1 << j)) != 0 {
+            let k = &mut current[j / 2][j % 2];
+            if *k <= 0 {
+                *k = -(-*k | (1 << a));
+            }
+        }
+        if (mask_b & (1 << j)) != 0 {
+            let k = &mut current[j / 2][j % 2];
+            if *k <= 0 {
+                *k = -(-*k | (1 << b));
+            }
+        }
+    }
+}
+
+fn get_constraint(current: &[[i32; 2]; 12], dups: [u16; 3], index: usize) -> Vec<u16> {
+    match index {
+        i @ (3 | 5 | 8 | 15 | 17 | 20) => {
+            let y = (i + 12) % 24;
+            let (div, rem) = (y / 2, y % 2);
+
+            let value = current[div][rem];
+            if value > 0 { vec![value.try_into().unwrap()] } else { dups.to_vec() }
+        }
+        _ => Vec::new(),
+    }
+}
 
 fn check_constraints(digits: &[usize; 24], dups: [usize; 3]) -> bool {
     let (a1, b1, c1) = (digits[3], digits[5], digits[8]);
@@ -68,97 +133,15 @@ fn check_constraints(digits: &[usize; 24], dups: [usize; 3]) -> bool {
         return false;
     }
 
-    for (i, row) in CONSTRAINTS.iter().enumerate() {
-        let d = digits[i];
-        for (j, &val) in row.iter().enumerate() {
-            if val == 1 && digits[j] == d {
+    for (i, d) in digits.iter().enumerate() {
+        let constraint_mask = CONSTRAINT_MASKS[i];
+        for (j, digit) in digits.iter().enumerate() {
+            if (constraint_mask & (1 << j)) != 0 && digit == d {
                 return false;
             }
         }
     }
     true
-}
-
-pub fn fill_contraints(
-    mut current: [[isize; 2]; 12],
-    index: usize,
-    mut set1: Vec<Pair>,
-    mut set2: Vec<Pair>,
-    dups: [usize; 3],
-    results: &mut Vec<[[isize; 2]; 12]>,
-) {
-    let set = if index < 6 { &set1 } else { &set2 };
-
-    let pos_constraint_a = get_pos_constraint(&current, dups, index * 2);
-    let pos_constraint_b = get_pos_constraint(&current, dups, index * 2 + 1);
-
-    let [a, b] = current[index];
-    let neg_constraint_a = if a < 0 { (1..=9).filter(|d| (-a & (1 << d)) == 0).collect() } else { Vec::new() };
-    let neg_constraint_b = if b < 0 { (1..=9).filter(|d| (-b & (1 << d)) == 0).collect() } else { Vec::new() };
-
-    for (i, [x, y]) in set.iter().enumerate() {
-        for [a, b] in [[x, y], [y, x]] {
-            let pas_a = pos_constraint_a.is_empty() || pos_constraint_a.contains(a);
-            let pas_b = pos_constraint_b.is_empty() || pos_constraint_b.contains(b);
-
-            let pas_neg_a = neg_constraint_a.is_empty() || !neg_constraint_a.contains(a);
-            let pas_neg_b = neg_constraint_b.is_empty() || !neg_constraint_b.contains(b);
-
-            if pas_a && pas_b && pas_neg_a && pas_neg_b {
-                let mut new_current = current;
-                new_current[index] = [*a as _, *b as _];
-
-                if index == 11 {
-                    results.push(new_current);
-                    continue;
-                }
-
-                let mask_a = CONSTRAINTS[index * 2];
-                let mask_b = CONSTRAINTS[index * 2 + 1];
-
-                for (j, &val) in mask_a.iter().enumerate() {
-                    if val == 1 {
-                        let k = &mut new_current[j / 2][j % 2];
-                        if *k <= 0 {
-                            *k = -(-*k | (1 << a));
-                        }
-                    }
-                }
-                for (j, &val) in mask_b.iter().enumerate() {
-                    if val == 1 {
-                        let k = &mut new_current[j / 2][j % 2];
-                        if *k <= 0 {
-                            *k = -(-*k | (1 << b));
-                        }
-                    }
-                }
-
-                let mut new_set1 = set1.clone();
-                let mut new_set2 = set2.clone();
-
-                if index < 6 {
-                    new_set1.remove(i);
-                } else {
-                    new_set2.remove(i);
-                }
-
-                fill_contraints(new_current, index + 1, new_set1, new_set2, dups, results);
-            }
-        }
-    }
-}
-
-fn get_pos_constraint(current: &[[isize; 2]; 12], dups: [usize; 3], index: usize) -> Vec<usize> {
-    match index {
-        i @ (3 | 5 | 8 | 15 | 17 | 20) => {
-            let y = (i + 12) % 24;
-            let (div, rem) = (y / 2, y % 2);
-
-            let value = current[div][rem];
-            if value > 0 { vec![value as _] } else { dups.to_vec() }
-        }
-        _ => Vec::new(),
-    }
 }
 
 #[cfg(test)]
@@ -169,21 +152,17 @@ mod tests {
         let mut results = vec![];
 
         let dups = [1, 6, 8];
-        let set1 = vec![[1, 3], [1, 6], [2, 7], [4, 8], [5, 8], [6, 9]];
-        let set2 = vec![[1, 4], [1, 5], [2, 6], [3, 8], [6, 8], [7, 9]];
+        let set = vec![[1, 3], [1, 6], [2, 7], [4, 8], [5, 8], [6, 9], [1, 4], [1, 5], [2, 6], [3, 8], [6, 8], [7, 9]];
 
-        fill_contraints([[0, 0]; 12], 0, set1, set2, dups, &mut results);
+        fill_constraints(&set, dups, &mut results);
         println!("{:?}", results);
     }
 
     #[test]
-    #[should_panic(expected = "Constraint violated")]
     fn test_constraint() {
-        // [1, 6, 8]: 13 16 27 48 58 69 | 14 15 26 38 68 79
-        let digits = [1, 3, 1, 6, 2, 7, 4, 8, 5, 8, 6, 9, 1, 4, 1, 5, 2, 6, 3, 8, 6, 8, 7, 9];
+        // [[6, 1], [4, 8], [9, 6], [5, 8], [1, 3], [2, 7], [7, 9], [6, 8], [2, 6], [4, 1], [1, 5], [3, 8]]
+        let digits = [6, 1, 4, 8, 9, 6, 5, 8, 1, 3, 2, 7, 7, 9, 6, 8, 2, 6, 4, 1, 1, 5, 3, 8];
 
-        if !check_constraints(&digits, [1, 6, 8]) {
-            panic!("Constraint violated");
-        }
+        assert!(check_constraints(&digits, [1, 6, 8]));
     }
 }

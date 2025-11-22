@@ -1,10 +1,14 @@
 use super::Pair;
 use super::Sum;
 
-pub fn compute_solutions(sequence: &[usize; 12], pair_sums: &[Sum<Pair>]) -> Vec<([Pair; 6], [Pair; 6])> {
+pub fn compute_solutions(sequence: &[u16; 12], pair_sums: &[Sum<Pair>]) -> Vec<([Pair; 6], [Pair; 6])> {
     // Try all possible combinations of selecting one pair from each sum in the sequence
-    let pair_options: [&Vec<Pair>; 12] =
-        sequence.iter().map(|&sum_value| &pair_sums[sum_value - 4].0).collect::<Vec<&Vec<Pair>>>().try_into().unwrap();
+    let pair_options: [&Vec<Pair>; 12] = sequence
+        .iter()
+        .map(|&sum_value| &pair_sums[sum_value as usize - 4].0)
+        .collect::<Vec<&Vec<Pair>>>()
+        .try_into()
+        .unwrap();
 
     // Use backtracking to find all valid combinations
     let mut all_solutions = Vec::new();
@@ -30,7 +34,7 @@ fn find_all_valid_combinations(
     if index == pair_options.len() {
         // Check if this combination satisfies the constraint
         if check_frequency_constraint(selected_pairs) {
-            let value = selected_pairs.to_vec().try_into().unwrap();
+            let value = selected_pairs.clone().try_into().unwrap();
             all_solutions.push(value);
         }
         return;
@@ -49,8 +53,8 @@ fn check_frequency_constraint(pairs: &[Pair]) -> bool {
 
     // Count occurrences of each digit
     for &[a, b] in pairs {
-        digit_count[a - 1] += 1;
-        digit_count[b - 1] += 1;
+        digit_count[a as usize - 1] += 1;
+        digit_count[b as usize - 1] += 1;
     }
 
     let mut dup_sum = 0;
@@ -60,7 +64,6 @@ fn check_frequency_constraint(pairs: &[Pair]) -> bool {
         match count {
             4 => dup_sum += i + 1,
             2 => count_2 += 1,
-            0 => return false,
             _ => return false,
         }
     }
@@ -112,8 +115,8 @@ fn check_group_constraint(pairs: &[Pair; 6]) -> bool {
 
     // Count occurrences of each digit
     for &[a, b] in pairs {
-        digit_count[a - 1] += 1;
-        digit_count[b - 1] += 1;
+        digit_count[a as usize - 1] += 1;
+        digit_count[b as usize - 1] += 1;
     }
 
     // Count how many digits appear exactly 2 times and exactly 1 time
@@ -124,7 +127,6 @@ fn check_group_constraint(pairs: &[Pair; 6]) -> bool {
         match count {
             2 => count_2 += 1,
             1 => count_1 += 1,
-            0 => return false,
             _ => return false,
         }
     }

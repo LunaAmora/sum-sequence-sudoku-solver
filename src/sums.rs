@@ -1,5 +1,5 @@
-pub type Pair = [usize; 2];
-pub type Triplet = [usize; 3];
+pub type Pair = [u16; 2];
+pub type Triplet = [u16; 3];
 
 pub struct Sum<T>(pub Vec<T>);
 
@@ -7,10 +7,10 @@ impl std::fmt::Display for Sum<Pair> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut first = true;
         for [a, b] in &self.0 {
-            if !first {
-                write!(f, " ")?;
-            } else {
+            if first {
                 first = false;
+            } else {
+                write!(f, " ")?;
             }
             write!(f, "{}{}", a, b)?;
         }
