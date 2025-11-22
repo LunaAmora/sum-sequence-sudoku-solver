@@ -77,8 +77,8 @@ fn print_combinations(combinations: &IndexMap<Triplet, Vec<[Pair; 12]>>) {
     }
 }
 
-fn get_solutions(combinations: &IndexMap<Triplet, Vec<[Pair; 12]>>) -> Vec<(Triplet, Vec<[Pair; 12]>)> {
-    let mut solutions = Vec::new();
+fn get_solutions(combinations: &IndexMap<Triplet, Vec<[Pair; 12]>>) -> IndexMap<Triplet, Vec<[Pair; 12]>> {
+    let mut solutions: IndexMap<_, Vec<_>> = IndexMap::new();
 
     for (triplet, combination) in combinations {
         for sequence in combination {
@@ -98,32 +98,36 @@ fn get_solutions(combinations: &IndexMap<Triplet, Vec<[Pair; 12]>>) -> Vec<(Trip
             let mut results = vec![];
             fill_constraints(sequence, dups, &mut results);
 
-            solutions.push((*triplet, results));
+            solutions.entry(*triplet).or_default().append(&mut results);
         }
     }
 
     solutions
 }
 
-fn print_solutions(solutions: &[(Triplet, Vec<[Pair; 12]>)]) {
+fn print_solutions(solutions: &IndexMap<Triplet, Vec<[Pair; 12]>>) {
     for (triplet, solution) in solutions {
-        for sequence in solution {
-            let mut digit_count = [0; 9];
-            for &[a, b] in &sequence[0..6] {
-                digit_count[a as usize - 1] += 1;
-                digit_count[b as usize - 1] += 1;
-            }
-            let dups: Vec<usize> = (0..9).filter(|&digit| digit_count[digit] == 2).map(|i| i + 1).collect();
+        if !solution.is_empty() {
+            println!("Found {} valid solution(s) for triplet {:?}", solution.len(), triplet);
 
-            print!("{:?} - {:?} =", triplet, dups);
-            for [a, b] in &sequence[0..6] {
-                print!(" {}{}", a, b);
+            for sequence in solution {
+                let mut digit_count = [0; 9];
+                for &[a, b] in &sequence[0..6] {
+                    digit_count[a as usize - 1] += 1;
+                    digit_count[b as usize - 1] += 1;
+                }
+                let dups: Vec<usize> = (0..9).filter(|&digit| digit_count[digit] == 2).map(|i| i + 1).collect();
+
+                print!("  {:?} =", dups);
+                for [a, b] in &sequence[0..6] {
+                    print!(" {}{}", a, b);
+                }
+                print!(" |");
+                for [a, b] in &sequence[6..12] {
+                    print!(" {}{}", a, b);
+                }
+                println!();
             }
-            print!(" |");
-            for [a, b] in &sequence[6..12] {
-                print!(" {}{}", a, b);
-            }
-            println!();
         }
     }
 }
