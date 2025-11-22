@@ -1,6 +1,6 @@
 use super::Pair;
 
-pub fn compute_solutions(sequence: &[u16; 12], pair_sums: &[Vec<Pair>]) -> Vec<([Pair; 6], [Pair; 6])> {
+pub fn compute_combinations(sequence: &[u16; 12], pair_sums: &[Vec<Pair>]) -> Vec<[Pair; 12]> {
     // Try all possible combinations of selecting one pair from each sum in the sequence
     let pair_options: [&Vec<Pair>; 12] = sequence
         .iter()
@@ -74,7 +74,7 @@ fn check_frequency_constraint(pairs: &[Pair]) -> bool {
 /// Splits a Vec<Pair> into 2 groups of 6 pairs each, maintaining frequency constraints.
 /// Returns all valid ways to split the pairs.
 /// Each group should have: 3 digits appearing 2 times, 6 digits appearing once.
-pub fn split_pairs_evenly(pairs: [Pair; 12]) -> Vec<([Pair; 6], [Pair; 6])> {
+pub fn split_pairs_evenly(pairs: [Pair; 12]) -> Vec<[Pair; 12]> {
     let mut results = Vec::new();
 
     // Generate all combinations of 6 items from 12 using bit manipulation
@@ -83,23 +83,14 @@ pub fn split_pairs_evenly(pairs: [Pair; 12]) -> Vec<([Pair; 6], [Pair; 6])> {
     // This ensures we only generate each unique split once
     for mask in 0u32..(1u32 << 12) {
         if mask.count_ones() == 6 && (mask & 1) == 1 {
-            let group1: [Pair; 6] = (0..12)
-                .filter(|&i| (mask & (1 << i)) != 0)
-                .map(|i| pairs[i])
-                .collect::<Vec<Pair>>()
-                .try_into()
-                .unwrap();
+            let group1 = (0..12).filter(|&i| (mask & (1 << i)) != 0).map(|i| pairs[i]);
+            let group2 = (0..12).filter(|&i| (mask & (1 << i)) == 0).map(|i| pairs[i]);
 
-            let group2: [Pair; 6] = (0..12)
-                .filter(|&i| (mask & (1 << i)) == 0)
-                .map(|i| pairs[i])
-                .collect::<Vec<Pair>>()
-                .try_into()
-                .unwrap();
+            let res: [Pair; 12] = group1.chain(group2).collect::<Vec<Pair>>().try_into().unwrap();
 
             // Check if both groups satisfy the constraint
-            if check_group_constraint(&group1) && check_group_constraint(&group2) {
-                results.push((group1, group2));
+            if check_group_constraint(&res[0..6]) && check_group_constraint(&res[6..12]) {
+                results.push(res);
             }
         }
     }
@@ -109,7 +100,7 @@ pub fn split_pairs_evenly(pairs: [Pair; 12]) -> Vec<([Pair; 6], [Pair; 6])> {
 
 /// Checks if a group of 6 pairs satisfies the constraint:
 /// 3 digits appearing 2 times, 6 digits appearing once
-fn check_group_constraint(pairs: &[Pair; 6]) -> bool {
+fn check_group_constraint(pairs: &[Pair]) -> bool {
     let mut digit_count = [0; 9];
 
     // Count occurrences of each digit
@@ -144,12 +135,6 @@ mod tests {
         let pairs = [[1, 4], [1, 5], [2, 5], [2, 6], [3, 7], [3, 8], [4, 8], [5, 8], [5, 9], [6, 9], [7, 9], [8, 9]];
 
         let splits = split_pairs_evenly(pairs);
-
-        println!("Found {} valid splits:", splits.len());
-        for (i, (group1, group2)) in splits.iter().enumerate() {
-            println!("Split {}:", i + 1);
-            println!("  Group 1: {:?}", group1);
-            println!("  Group 2: {:?}", group2);
-        }
+        assert!(!splits.is_empty());
     }
 }
