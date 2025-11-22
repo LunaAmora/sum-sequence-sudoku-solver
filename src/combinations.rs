@@ -1,11 +1,10 @@
 use super::Pair;
-use super::Sum;
 
-pub fn compute_solutions(sequence: &[u16; 12], pair_sums: &[Sum<Pair>]) -> Vec<([Pair; 6], [Pair; 6])> {
+pub fn compute_solutions(sequence: &[u16; 12], pair_sums: &[Vec<Pair>]) -> Vec<([Pair; 6], [Pair; 6])> {
     // Try all possible combinations of selecting one pair from each sum in the sequence
     let pair_options: [&Vec<Pair>; 12] = sequence
         .iter()
-        .map(|&sum_value| &pair_sums[sum_value as usize - 4].0)
+        .map(|&sum_value| &pair_sums[sum_value as usize - 4])
         .collect::<Vec<&Vec<Pair>>>()
         .try_into()
         .unwrap();
