@@ -1,11 +1,15 @@
 #![allow(dead_code)]
+#![allow(unused)]
 
+mod checker;
 mod combinations;
 mod sums;
 
 use combinations::compute_solutions;
 use indexmap::IndexMap;
 use sums::*;
+
+use crate::checker::fill_contraints;
 
 fn main() {
     let pair_sums = pair_sums();
@@ -20,7 +24,13 @@ fn main() {
 
     // print_triple_map(&triplet_map);
     // print_pairs_sequence(&pairs_sequence);
-    print_solutions(&pairs_sequence, &pair_sums);
+    // print_solutions(&pairs_sequence, &pair_sums);
+    let res = check_solutions(&pairs_sequence, &pair_sums);
+
+    // print res
+    for solution in res {
+        println!("{:?}", solution);
+    }
 }
 
 type CornerTriplets = [Triplet; 3];
@@ -118,6 +128,33 @@ fn filter_triplets(
     }
 }
 
+fn check_solutions(pairs_sequence: &IndexMap<Triplet, [usize; 12]>, pair_sums: &[Sum<Pair>]) -> Vec<[[isize; 2]; 12]> {
+    let mut results = vec![];
+    for (tripplet, seq) in pairs_sequence {
+        let solutions = compute_solutions(seq, pair_sums);
+        if !solutions.is_empty() {
+            for (i, solution) in solutions.iter().enumerate() {
+                let mut digit_count = [0; 9];
+                for [a, b] in solution.0 {
+                    digit_count[a - 1] += 1;
+                    digit_count[b - 1] += 1;
+                }
+
+                let dups: [usize; 3] = (0..9)
+                    .filter(|&digit| digit_count[digit] == 2)
+                    .map(|i| i + 1)
+                    .collect::<Vec<usize>>()
+                    .try_into()
+                    .unwrap();
+
+                fill_contraints([[0, 0]; 12], 0, solution.0.to_vec(), solution.1.to_vec(), dups, &mut results);
+            }
+        }
+    }
+
+    results
+}
+
 fn print_solutions(pairs_sequence: &IndexMap<Triplet, [usize; 12]>, pair_sums: &[Sum<Pair>]) {
     for (tripplet, seq) in pairs_sequence {
         let solutions = compute_solutions(seq, pair_sums);
@@ -134,11 +171,11 @@ fn print_solutions(pairs_sequence: &IndexMap<Triplet, [usize; 12]>, pair_sums: &
                     digit_count[a - 1] += 1;
                     digit_count[b - 1] += 1;
                 }
-                let duplicated: Vec<usize> = (0..9).filter(|&digit| digit_count[digit] == 2).map(|i| i + 1).collect();
+                let dups: Vec<usize> = (0..9).filter(|&digit| digit_count[digit] == 2).map(|i| i + 1).collect();
                 println!(
                     "  Solution {:3} {:?}: {} | {}",
                     i + 1,
-                    duplicated,
+                    dups,
                     Sum(solution.0.to_vec()),
                     Sum(solution.1.to_vec())
                 );
