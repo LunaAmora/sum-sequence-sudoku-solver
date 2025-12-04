@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 mod checker;
+mod checker_v2;
 mod combinations;
 mod sums;
 
