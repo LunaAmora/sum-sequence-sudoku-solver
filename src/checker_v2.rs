@@ -188,24 +188,30 @@ impl SetRule for BoxRule {
 fn find_naked_sets(pencilmarks: &[(Pos, [bool; 9])]) -> [Option<Vec<Pos>>; 9] {
     let mut result = [const { None }; 9];
 
-    // Naked pairs
+    // Naked quads
     for i in 0..pencilmarks.len() {
         for j in (i + 1)..pencilmarks.len() {
-            let mut union = [false; 9];
-            let mut count = 0;
+            for k in (j + 1)..pencilmarks.len() {
+                for l in (k + 1)..pencilmarks.len() {
+                    let mut union = [false; 9];
+                    let mut count = 0;
 
-            let ((ip, pi), (jp, pj)) = (&pencilmarks[i], &pencilmarks[j]);
+                    let ((ip, pi), (jp, pj), (kp, pk), (lp, pl)) =
+                        (&pencilmarks[i], &pencilmarks[j], &pencilmarks[k], &pencilmarks[l]);
 
-            for a in 0..9 {
-                if pi[a] || pj[a] {
-                    union[a] = true;
-                    count += 1;
-                }
-            }
-            if count == 2 {
-                for a in 0..9 {
-                    if union[a] {
-                        result[a] = Some(vec![*ip, *jp]);
+                    for a in 0..9 {
+                        if pi[a] || pj[a] || pk[a] || pl[a] {
+                            union[a] = true;
+                            count += 1;
+                        }
+                    }
+
+                    if count == 4 {
+                        for a in 0..9 {
+                            if union[a] {
+                                result[a] = Some(vec![*ip, *jp, *kp, *lp]);
+                            }
+                        }
                     }
                 }
             }
@@ -233,6 +239,30 @@ fn find_naked_sets(pencilmarks: &[(Pos, [bool; 9])]) -> [Option<Vec<Pos>>; 9] {
                         if union[a] {
                             result[a] = Some(vec![*ip, *jp, *kp]);
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    // Naked pairs
+    for i in 0..pencilmarks.len() {
+        for j in (i + 1)..pencilmarks.len() {
+            let mut union = [false; 9];
+            let mut count = 0;
+
+            let ((ip, pi), (jp, pj)) = (&pencilmarks[i], &pencilmarks[j]);
+
+            for a in 0..9 {
+                if pi[a] || pj[a] {
+                    union[a] = true;
+                    count += 1;
+                }
+            }
+            if count == 2 {
+                for a in 0..9 {
+                    if union[a] {
+                        result[a] = Some(vec![*ip, *jp]);
                     }
                 }
             }
@@ -385,11 +415,18 @@ mod tests {
                 println!("Resulting Sudoku:\n{}", sudoku);
                 assert_eq!(sudoku, solution);
             }
-            SolveResult::Unsolvable => println!("Sudoku is unsolvable"),
-            SolveResult::Stuck => println!("No progress made after {} iterations", counter),
+            SolveResult::Unsolvable => {
+                println!("Sudoku is unsolvable");
+                panic!("Should have been solvable");
+            }
+            SolveResult::Stuck => {
+                println!("No progress made after {} iterations", counter);
+                panic!("Should have been solvable");
+            }
             SolveResult::LimitReached(sudoku) => {
                 println!("Reached iteration limit: {}", counter);
                 println!("Resulting Sudoku:\n{}", sudoku);
+                panic!("Should have been solved before reaching limit");
             }
         };
     }
