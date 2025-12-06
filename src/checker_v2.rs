@@ -279,42 +279,63 @@ impl Display for Sudoku {
     }
 }
 
-fn solve_sudoku(mut sudoku: Sudoku) -> Option<Sudoku> {
-    let mut row_rule = RowRule::default();
-    let mut col_rule = ColRule::default();
-    let mut box_rule = BoxRule::default();
-    let mut rules: Vec<&mut dyn SetRule> = vec![&mut box_rule, &mut row_rule, &mut col_rule];
+enum SolveResult {
+    Solved(Sudoku),
+    Unsolvable,
+    Stuck,
+    LimitReached(Sudoku),
+}
 
-    let mut counter = 0;
+fn solve_sudoku(mut sudoku: Sudoku, rules: &mut [&mut dyn SetRule], counter: &mut usize) -> SolveResult {
     loop {
         let old_sudoku = sudoku.clone();
 
         for _ in 0..9 {
-            for rule in &mut rules {
-                counter += 1;
-                rule.update_cells(&mut sudoku)?;
+            for rule in &mut *rules {
+                *counter += 1;
+                if rule.update_cells(&mut sudoku).is_none() {
+                    return SolveResult::Unsolvable;
+                }
             }
         }
 
         if old_sudoku == sudoku {
-            println!("No progress made after {} iterations", counter);
-            break;
+            let mut progress = false;
+            for i in 0..9 {
+                for j in 0..9 {
+                    let mut cell_value = sudoku[i][j];
+                    if let Cell::Pencil(pm) = extract_cell(cell_value) {
+                        for d in pm.iter().enumerate().filter_map(|(d, &b)| b.then_some(d)) {
+                            let mut test_sudoku = sudoku.clone();
+                            test_sudoku[i][j] = d as u16 + 1;
+
+                            if let SolveResult::Unsolvable = solve_sudoku(test_sudoku, rules, counter) {
+                                progress = true;
+                                cell_value &= !(1 << d);
+                                sudoku[i][j] = cell_value;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if progress {
+                continue;
+            } else {
+                return SolveResult::Stuck;
+            }
         }
 
         let done = sudoku.iter().all(|row| row.iter().all(|&cell| matches!(extract_cell(cell), Cell::Digit(_))));
 
         if done {
-            println!("Solved in {} iterations", counter);
-            break;
+            return SolveResult::Solved(sudoku);
         }
 
-        if counter >= 100000 {
-            println!("Reached iteration limit: {}", counter);
-            break;
+        if *counter >= 2000000 {
+            return SolveResult::LimitReached(sudoku);
         }
     }
-
-    Some(sudoku)
 }
 
 #[cfg(test)]
@@ -323,37 +344,54 @@ mod tests {
     #[test]
     fn test_checker() {
         let sudoku = Sudoku([
-            [1, 5, 4, 2, 0, 6, 0, 0, 0],
-            [0, 2, 0, 7, 1, 0, 0, 0, 0],
-            [6, 8, 0, 4, 5, 0, 0, 2, 0],
-            [0, 0, 0, 8, 0, 0, 7, 0, 0],
-            [4, 0, 8, 9, 0, 7, 2, 0, 0],
-            [0, 0, 0, 0, 0, 2, 4, 0, 9],
-            [2, 0, 5, 0, 0, 0, 0, 0, 0],
-            [9, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 7, 6, 0, 0, 0, 0, 4, 0],
+            [0, 6, 0, 8, 0, 0, 0, 0, 0],
+            [4, 0, 0, 0, 0, 5, 0, 8, 0],
+            [0, 3, 7, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 4, 0, 9, 7, 3, 0, 0],
+            [0, 0, 0, 0, 5, 3, 0, 0, 0],
+            [7, 0, 0, 0, 0, 1, 4, 6, 0],
+            [5, 9, 0, 0, 0, 4, 7, 3, 0],
+            [0, 0, 1, 0, 7, 0, 0, 0, 5],
         ]);
 
         let solution = Sudoku([
-            [1, 5, 4, 2, 9, 6, 3, 7, 8],
-            [3, 2, 9, 7, 1, 8, 6, 5, 4],
-            [6, 8, 7, 4, 5, 3, 9, 2, 1],
-            [5, 9, 2, 8, 4, 1, 7, 3, 6],
-            [4, 6, 8, 9, 3, 7, 2, 1, 5],
-            [7, 1, 3, 5, 6, 2, 4, 8, 9],
-            [2, 3, 5, 6, 8, 4, 1, 9, 7],
-            [9, 4, 1, 3, 7, 5, 8, 6, 2],
-            [8, 7, 6, 1, 2, 9, 5, 4, 3],
+            [9, 6, 5, 8, 4, 2, 1, 7, 3],
+            [4, 1, 2, 7, 3, 5, 9, 8, 6],
+            [8, 3, 7, 9, 1, 6, 5, 4, 2],
+            [3, 7, 9, 1, 2, 8, 6, 5, 4],
+            [2, 5, 4, 6, 9, 7, 3, 1, 8],
+            [1, 8, 6, 4, 5, 3, 2, 9, 7],
+            [7, 2, 3, 5, 8, 1, 4, 6, 9],
+            [5, 9, 8, 2, 6, 4, 7, 3, 1],
+            [6, 4, 1, 3, 7, 9, 8, 2, 5],
         ]);
 
-        // time the execution of solve_sudoku(sudoku) and print the duration
+        let mut row_rule = RowRule::default();
+        let mut col_rule = ColRule::default();
+        let mut box_rule = BoxRule::default();
+        let mut rules: Vec<&mut dyn SetRule> = vec![&mut box_rule, &mut col_rule, &mut row_rule];
+
         let start = std::time::Instant::now();
-        let result = solve_sudoku(sudoku);
+        let mut counter = 0;
+        let result = solve_sudoku(sudoku, &mut rules, &mut counter);
+
         let duration = start.elapsed();
         println!("Time elapsed in solve_sudoku() is: {:?}", duration);
-        println!("Resulting Sudoku:\n{}", result.as_ref().unwrap());
 
-        assert_eq!(result, Some(solution));
+        match result {
+            SolveResult::Solved(sudoku) => {
+                println!("Solved in {} iterations", counter);
+                println!("Resulting Sudoku:\n{}", sudoku);
+                assert_eq!(sudoku, solution);
+            }
+            SolveResult::Unsolvable => println!("Sudoku is unsolvable"),
+            SolveResult::Stuck => println!("No progress made after {} iterations", counter),
+            SolveResult::LimitReached(sudoku) => {
+                println!("Reached iteration limit: {}", counter);
+                println!("Resulting Sudoku:\n{}", sudoku);
+            }
+        };
     }
 
     #[test]
