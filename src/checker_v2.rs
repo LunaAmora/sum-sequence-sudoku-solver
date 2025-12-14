@@ -1,7 +1,7 @@
 use std::{
     fmt::Display,
     num::NonZeroU8,
-    ops::{Deref, DerefMut, Index},
+    ops::{Index, IndexMut},
 };
 
 #[derive(PartialEq, Debug, Clone, Copy)]
@@ -33,25 +33,15 @@ impl Mask {
     }
 }
 
-impl Deref for Mask {
-    type Target = u16;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
 impl PartialEq<u16> for Mask {
     fn eq(&self, other: &u16) -> bool {
         &self.0 == other
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Debug)]
-struct Pos(usize, usize);
-
-#[derive(PartialEq, Debug)]
-enum Cell {
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+enum Value {
+    #[default]
     Empty,
     Digit(NonZeroU8),
     Pencil(Mask),
@@ -64,31 +54,35 @@ enum Cell {
 //           |      digits 1-9
 //           |
 //           1-9 pencilmarks for digits 1-9
-fn extract_cell(value: u16) -> Cell {
+fn extract_cell(value: u16) -> Value {
     if value == 0 {
-        return Cell::Empty;
+        return Value::Empty;
     }
 
     if (value & 0x8000) == 0 {
-        Cell::Digit(NonZeroU8::new((value & 0xF) as u8).unwrap())
+        Value::Digit(NonZeroU8::new((value & 0xF) as u8).unwrap())
     } else {
-        Cell::Pencil(Mask(value & 0x1FF))
+        Value::Pencil(Mask(value & 0x1FF))
     }
 }
+
+type Pos = (usize, usize);
+type CellValue = (Pos, Value);
+type CellMask = (Pos, Mask);
 
 trait SetRule {
     fn update_cells(&mut self, sudoku: &mut Sudoku) -> Option<()> {
         let mut allowed_digits = Mask(0b111111111);
-        let mut pencilmarks: Vec<(Pos, Mask)> = Vec::new();
+        let mut pencilmarks: Vec<CellMask> = Vec::new();
         let mut empty_cells: Vec<Pos> = Vec::new();
 
         let set = self.next_set(sudoku);
 
-        for &(cell, value) in set.iter() {
-            match extract_cell(value) {
-                Cell::Empty => empty_cells.push(cell),
-                Cell::Digit(d) => allowed_digits.set((d.get() - 1) as usize, false),
-                Cell::Pencil(pm) => pencilmarks.push((cell, pm)),
+        for &(pos, value) in set.iter() {
+            match value {
+                Value::Empty => empty_cells.push(pos),
+                Value::Digit(d) => allowed_digits.set((d.get() - 1) as usize, false),
+                Value::Pencil(pm) => pencilmarks.push((pos, pm)),
             }
         }
 
@@ -110,9 +104,13 @@ trait SetRule {
 
         let naked_sets = find_naked_sets(&pencilmarks);
 
-        for (i, naked_cells) in naked_sets.into_iter().enumerate().filter_map(|(i, n)| n.map(|n| (i, n))) {
-            for (cell, pm) in pencilmarks.iter_mut() {
-                if naked_cells.contains(cell) {
+        for (i, naked_cells) in naked_sets.into_iter().enumerate() {
+            let Some(naked_cells) = naked_cells else {
+                continue;
+            };
+
+            for (pos, pm) in pencilmarks.iter_mut() {
+                if naked_cells.contains(pos) {
                     continue;
                 }
 
@@ -122,31 +120,31 @@ trait SetRule {
             }
         }
 
-        for (cell, pm) in pencilmarks.iter_mut() {
-            let count = pm.count_ones();
+        for (pos, pm) in pencilmarks.iter_mut() {
+            let count = pm.0.count_ones();
 
             let new_value = match count {
                 0 => return None,
-                1 => pm.trailing_zeros() as u16 + 1,
+                1 => pm.0.trailing_zeros() as u16 + 1,
                 _ => {
                     let mut pm_value = *pm;
                     pm_value.set(15, true);
 
-                    if pm_value != sudoku[cell.0][cell.1] {
-                        *pm_value
+                    if pm_value != sudoku[*pos] {
+                        pm_value.0
                     } else {
                         continue;
                     }
                 }
             };
 
-            sudoku[cell.0][cell.1] = new_value;
+            sudoku[*pos] = new_value;
         }
 
         Some(())
     }
 
-    fn next_set(&mut self, sudoku: &Sudoku) -> [(Pos, u16); 9];
+    fn next_set(&mut self, sudoku: &Sudoku) -> [CellValue; 9];
 }
 
 #[derive(Default)]
@@ -155,13 +153,12 @@ struct RowRule {
 }
 
 impl SetRule for RowRule {
-    fn next_set(&mut self, sudoku: &Sudoku) -> [(Pos, u16); 9] {
-        let mut result = [(Pos(0, 0), 0u16); 9];
+    fn next_set(&mut self, sudoku: &Sudoku) -> [CellValue; 9] {
+        let mut result = [CellValue::default(); 9];
 
-        for i in 0..9 {
-            let pos = Pos(self.counter, i);
-            let value = sudoku[self.counter][i];
-            result[i] = (pos, value);
+        for (i, res) in result.iter_mut().enumerate() {
+            let pos = (self.counter, i);
+            *res = (pos, extract_cell(sudoku[pos]));
         }
 
         self.counter = (self.counter + 1) % 9;
@@ -175,13 +172,12 @@ struct ColRule {
 }
 
 impl SetRule for ColRule {
-    fn next_set(&mut self, sudoku: &Sudoku) -> [(Pos, u16); 9] {
-        let mut result = [(Pos(0, 0), 0u16); 9];
+    fn next_set(&mut self, sudoku: &Sudoku) -> [CellValue; 9] {
+        let mut result = [CellValue::default(); 9];
 
-        for i in 0..9 {
-            let pos = Pos(i, self.counter);
-            let value = sudoku[i][self.counter];
-            result[i] = (pos, value);
+        for (i, res) in result.iter_mut().enumerate() {
+            let pos = (i, self.counter);
+            *res = (pos, extract_cell(sudoku[pos]));
         }
 
         self.counter = (self.counter + 1) % 9;
@@ -195,17 +191,16 @@ struct BoxRule {
 }
 
 impl SetRule for BoxRule {
-    fn next_set(&mut self, sudoku: &Sudoku) -> [(Pos, u16); 9] {
+    fn next_set(&mut self, sudoku: &Sudoku) -> [CellValue; 9] {
         let box_row = (self.counter / 3) * 3;
         let box_col = (self.counter % 3) * 3;
 
-        let mut result = [(Pos(0, 0), 0u16); 9];
+        let mut result = [CellValue::default(); 9];
 
         for i in 0..3 {
             for j in 0..3 {
-                let pos = Pos(box_row + i, box_col + j);
-                let value = sudoku[box_row + i][box_col + j];
-                result[i * 3 + j] = (pos, value);
+                let pos = (box_row + i, box_col + j);
+                result[i * 3 + j] = (pos, extract_cell(sudoku[pos]));
             }
         }
 
@@ -214,33 +209,38 @@ impl SetRule for BoxRule {
     }
 }
 
-fn find_naked_sets(marks: &[(Pos, Mask)]) -> [Option<Vec<Pos>>; 9] {
+fn find_naked_sets(marks: &[CellMask]) -> [Option<Vec<Pos>>; 9] {
     let mut result = [const { None }; 9];
+
+    fn check_combination(marks: &[CellMask], indices: &[usize], result: &mut [Option<Vec<Pos>>; 9]) {
+        let mut union = [false; 9];
+        let mut count = 0;
+
+        for &idx in indices {
+            for (i, union) in union.iter_mut().enumerate() {
+                if marks[idx].1[i] && !*union {
+                    *union = true;
+                    count += 1;
+                }
+            }
+        }
+
+        if count == indices.len() {
+            let positions: Vec<Pos> = indices.iter().map(|&idx| marks[idx].0).collect();
+            for i in 0..9 {
+                if union[i] {
+                    result[i] = Some(positions.clone());
+                }
+            }
+        }
+    }
 
     // Naked quads
     for i in 0..marks.len() {
         for j in (i + 1)..marks.len() {
             for k in (j + 1)..marks.len() {
                 for l in (k + 1)..marks.len() {
-                    let mut union = [false; 9];
-                    let mut count = 0;
-
-                    let ((ip, pi), (jp, pj), (kp, pk), (lp, pl)) = (&marks[i], &marks[j], &marks[k], &marks[l]);
-
-                    for a in 0..9 {
-                        if pi[a] || pj[a] || pk[a] || pl[a] {
-                            union[a] = true;
-                            count += 1;
-                        }
-                    }
-
-                    if count == 4 {
-                        for a in 0..9 {
-                            if union[a] {
-                                result[a] = Some(vec![*ip, *jp, *kp, *lp]);
-                            }
-                        }
-                    }
+                    check_combination(marks, &[i, j, k, l], &mut result);
                 }
             }
         }
@@ -250,25 +250,7 @@ fn find_naked_sets(marks: &[(Pos, Mask)]) -> [Option<Vec<Pos>>; 9] {
     for i in 0..marks.len() {
         for j in (i + 1)..marks.len() {
             for k in (j + 1)..marks.len() {
-                let mut union = [false; 9];
-                let mut count = 0;
-
-                let ((ip, pi), (jp, pj), (kp, pk)) = (&marks[i], &marks[j], &marks[k]);
-
-                for a in 0..9 {
-                    if pi[a] || pj[a] || pk[a] {
-                        union[a] = true;
-                        count += 1;
-                    }
-                }
-
-                if count == 3 {
-                    for a in 0..9 {
-                        if union[a] {
-                            result[a] = Some(vec![*ip, *jp, *kp]);
-                        }
-                    }
-                }
+                check_combination(marks, &[i, j, k], &mut result);
             }
         }
     }
@@ -276,25 +258,7 @@ fn find_naked_sets(marks: &[(Pos, Mask)]) -> [Option<Vec<Pos>>; 9] {
     // Naked pairs
     for i in 0..marks.len() {
         for j in (i + 1)..marks.len() {
-            let mut union = [false; 9];
-            let mut count = 0;
-
-            let ((ip, pi), (jp, pj)) = (&marks[i], &marks[j]);
-
-            for a in 0..9 {
-                if pi[a] || pj[a] {
-                    union[a] = true;
-                    count += 1;
-                }
-            }
-
-            if count == 2 {
-                for a in 0..9 {
-                    if union[a] {
-                        result[a] = Some(vec![*ip, *jp]);
-                    }
-                }
-            }
+            check_combination(marks, &[i, j], &mut result);
         }
     }
 
@@ -308,17 +272,17 @@ fn get_single_digit(value: u16) -> Option<u16> {
 #[derive(Debug, PartialEq, Clone)]
 struct Sudoku([[u16; 9]; 9]);
 
-impl Deref for Sudoku {
-    type Target = [[u16; 9]; 9];
+impl Index<Pos> for Sudoku {
+    type Output = u16;
 
-    fn deref(&self) -> &Self::Target {
-        &self.0
+    fn index(&self, (row, col): Pos) -> &Self::Output {
+        &self.0[row][col]
     }
 }
 
-impl DerefMut for Sudoku {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+impl IndexMut<Pos> for Sudoku {
+    fn index_mut(&mut self, (row, col): Pos) -> &mut Self::Output {
+        &mut self.0[row][col]
     }
 }
 
@@ -327,9 +291,9 @@ impl Display for Sudoku {
         for row in &self.0 {
             for &cell in row {
                 match extract_cell(cell) {
-                    Cell::Empty => write!(f, "_ ")?,
-                    Cell::Digit(d) => write!(f, "{} ", d)?,
-                    Cell::Pencil(_) => write!(f, ". ")?,
+                    Value::Empty => write!(f, "_ ")?,
+                    Value::Digit(d) => write!(f, "{} ", d)?,
+                    Value::Pencil(_) => write!(f, ". ")?,
                 }
             }
             writeln!(f)?;
@@ -362,20 +326,20 @@ fn solve_sudoku(mut sudoku: Sudoku, rules: &mut [&mut dyn SetRule], counter: &mu
             let mut progress = false;
             for i in 0..9 {
                 for j in 0..9 {
-                    let mut cell_value = sudoku[i][j];
-                    if let Cell::Pencil(pm) = extract_cell(cell_value) {
+                    let mut cell_value = sudoku[(i, j)];
+                    if let Value::Pencil(pm) = extract_cell(cell_value) {
                         for d in 0..9 {
                             if !pm[d] {
                                 continue;
                             }
 
                             let mut test_sudoku = sudoku.clone();
-                            test_sudoku[i][j] = d as u16 + 1;
+                            test_sudoku[(i, j)] = d as u16 + 1;
 
                             if let SolveResult::Unsolvable = solve_sudoku(test_sudoku, rules, counter) {
                                 progress = true;
                                 cell_value &= !(1 << d);
-                                sudoku[i][j] = cell_value;
+                                sudoku[(i, j)] = cell_value;
                             }
                         }
                     }
@@ -389,7 +353,7 @@ fn solve_sudoku(mut sudoku: Sudoku, rules: &mut [&mut dyn SetRule], counter: &mu
             }
         }
 
-        let done = sudoku.iter().all(|row| row.iter().all(|&cell| matches!(extract_cell(cell), Cell::Digit(_))));
+        let done = sudoku.0.iter().all(|row| row.iter().all(|&cell| matches!(extract_cell(cell), Value::Digit(_))));
 
         if done {
             return SolveResult::Solved(sudoku);
@@ -469,26 +433,22 @@ mod tests {
         let value_digit = 0b0000_0000_0000_0101;
         let value_marks = 0b1000_0001_0101_0110;
 
-        assert_eq!(extract_cell(value_digit), Cell::Digit(NonZeroU8::new(5).unwrap()));
-        assert_eq!(extract_cell(value_marks), Cell::Pencil(Mask(0b1_0101_0110)));
+        assert_eq!(extract_cell(value_digit), Value::Digit(NonZeroU8::new(5).unwrap()));
+        assert_eq!(extract_cell(value_marks), Value::Pencil(Mask(0b1_0101_0110)));
     }
 
     #[test]
     fn test_find_naked_sets() {
-        let pencilmarks = vec![
-            (Pos(0, 0), Mask(0b0111)),
-            (Pos(0, 1), Mask(0b0011)),
-            (Pos(0, 2), Mask(0b0101)),
-            (Pos(0, 3), Mask(0b1001)),
-        ];
+        let pencilmarks =
+            vec![((0, 0), Mask(0b0111)), ((0, 1), Mask(0b0011)), ((0, 2), Mask(0b0101)), ((0, 3), Mask(0b1001))];
 
         let result = find_naked_sets(&pencilmarks);
 
         let a: [Option<Vec<Pos>>; 9] = [
-            Some(vec![Pos(0, 0), Pos(0, 1), Pos(0, 2)]),
-            Some(vec![Pos(0, 0), Pos(0, 1), Pos(0, 2)]),
-            Some(vec![Pos(0, 0), Pos(0, 1), Pos(0, 2)]),
-            Some(vec![Pos(0, 0), Pos(0, 1), Pos(0, 2), Pos(0, 3)]),
+            Some(vec![(0, 0), (0, 1), (0, 2)]),
+            Some(vec![(0, 0), (0, 1), (0, 2)]),
+            Some(vec![(0, 0), (0, 1), (0, 2)]),
+            Some(vec![(0, 0), (0, 1), (0, 2), (0, 3)]),
             None,
             None,
             None,
