@@ -1,17 +1,60 @@
 use std::{
     fmt::Display,
     num::NonZeroU8,
-    ops::{Deref, DerefMut},
+    ops::{Deref, DerefMut, Index},
 };
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(PartialEq, Debug, Clone, Copy)]
+struct Mask(u16);
+
+impl Index<usize> for Mask {
+    type Output = bool;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        if index >= 16 {
+            panic!("Index out of bounds");
+        }
+
+        if self.0 & (1 << index) != 0 { &true } else { &false }
+    }
+}
+
+impl Mask {
+    fn set(&mut self, index: usize, value: bool) {
+        if index >= 16 {
+            panic!("Index out of bounds");
+        }
+
+        if value {
+            self.0 |= 1 << index;
+        } else {
+            self.0 &= !(1 << index);
+        }
+    }
+}
+
+impl Deref for Mask {
+    type Target = u16;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl PartialEq<u16> for Mask {
+    fn eq(&self, other: &u16) -> bool {
+        &self.0 == other
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Debug)]
 struct Pos(usize, usize);
 
 #[derive(PartialEq, Debug)]
 enum Cell {
     Empty,
     Digit(NonZeroU8),
-    Pencil([bool; 9]),
+    Pencil(Mask),
 }
 
 //   0 for number, 1 for pencilmark
@@ -26,25 +69,17 @@ fn extract_cell(value: u16) -> Cell {
         return Cell::Empty;
     }
 
-    let is_digit = (value & 0x8000) == 0;
-
-    if is_digit {
+    if (value & 0x8000) == 0 {
         Cell::Digit(NonZeroU8::new((value & 0xF) as u8).unwrap())
     } else {
-        let mut pm = [false; 9];
-        for (i, p) in pm.iter_mut().enumerate() {
-            if (value & (1 << i)) != 0 {
-                *p = true;
-            }
-        }
-        Cell::Pencil(pm)
+        Cell::Pencil(Mask(value & 0x1FF))
     }
 }
 
 trait SetRule {
     fn update_cells(&mut self, sudoku: &mut Sudoku) -> Option<()> {
-        let mut allowed_digits: [bool; 9] = [true; 9];
-        let mut pencilmarks: Vec<(Pos, [bool; 9])> = Vec::new();
+        let mut allowed_digits = Mask(0b111111111);
+        let mut pencilmarks: Vec<(Pos, Mask)> = Vec::new();
         let mut empty_cells: Vec<Pos> = Vec::new();
 
         let set = self.next_set(sudoku);
@@ -52,7 +87,7 @@ trait SetRule {
         for &(cell, value) in set.iter() {
             match extract_cell(value) {
                 Cell::Empty => empty_cells.push(cell),
-                Cell::Digit(d) => allowed_digits[(d.get() - 1) as usize] = false,
+                Cell::Digit(d) => allowed_digits.set((d.get() - 1) as usize, false),
                 Cell::Pencil(pm) => pencilmarks.push((cell, pm)),
             }
         }
@@ -62,9 +97,9 @@ trait SetRule {
         }
 
         for pm in &mut pencilmarks {
-            for (i, allowed) in allowed_digits.iter().enumerate() {
-                if !allowed {
-                    pm.1[i] = false;
+            for i in 0..9 {
+                if !allowed_digits[i] {
+                    pm.1.set(i, false);
                 }
             }
         }
@@ -82,29 +117,23 @@ trait SetRule {
                 }
 
                 if pm[i] {
-                    pm[i] = false;
+                    pm.set(i, false);
                 }
             }
         }
 
         for (cell, pm) in pencilmarks.iter_mut() {
-            let count = pm.iter().filter(|&&x| x).count();
+            let count = pm.count_ones();
 
             let new_value = match count {
                 0 => return None,
-                1 => {
-                    let digit = pm.iter().position(|&x| x).unwrap() + 1;
-                    digit as u16
-                }
+                1 => pm.trailing_zeros() as u16 + 1,
                 _ => {
-                    let mut pm_value = 0x8000;
-                    for (i, &marked) in pm.iter().enumerate() {
-                        if marked {
-                            pm_value |= 1 << i;
-                        }
-                    }
+                    let mut pm_value = *pm;
+                    pm_value.set(15, true);
+
                     if pm_value != sudoku[cell.0][cell.1] {
-                        pm_value
+                        *pm_value
                     } else {
                         continue;
                     }
@@ -185,19 +214,18 @@ impl SetRule for BoxRule {
     }
 }
 
-fn find_naked_sets(pencilmarks: &[(Pos, [bool; 9])]) -> [Option<Vec<Pos>>; 9] {
+fn find_naked_sets(marks: &[(Pos, Mask)]) -> [Option<Vec<Pos>>; 9] {
     let mut result = [const { None }; 9];
 
     // Naked quads
-    for i in 0..pencilmarks.len() {
-        for j in (i + 1)..pencilmarks.len() {
-            for k in (j + 1)..pencilmarks.len() {
-                for l in (k + 1)..pencilmarks.len() {
+    for i in 0..marks.len() {
+        for j in (i + 1)..marks.len() {
+            for k in (j + 1)..marks.len() {
+                for l in (k + 1)..marks.len() {
                     let mut union = [false; 9];
                     let mut count = 0;
 
-                    let ((ip, pi), (jp, pj), (kp, pk), (lp, pl)) =
-                        (&pencilmarks[i], &pencilmarks[j], &pencilmarks[k], &pencilmarks[l]);
+                    let ((ip, pi), (jp, pj), (kp, pk), (lp, pl)) = (&marks[i], &marks[j], &marks[k], &marks[l]);
 
                     for a in 0..9 {
                         if pi[a] || pj[a] || pk[a] || pl[a] {
@@ -219,13 +247,13 @@ fn find_naked_sets(pencilmarks: &[(Pos, [bool; 9])]) -> [Option<Vec<Pos>>; 9] {
     }
 
     // Naked triplets
-    for i in 0..pencilmarks.len() {
-        for j in (i + 1)..pencilmarks.len() {
-            for k in (j + 1)..pencilmarks.len() {
+    for i in 0..marks.len() {
+        for j in (i + 1)..marks.len() {
+            for k in (j + 1)..marks.len() {
                 let mut union = [false; 9];
                 let mut count = 0;
 
-                let ((ip, pi), (jp, pj), (kp, pk)) = (&pencilmarks[i], &pencilmarks[j], &pencilmarks[k]);
+                let ((ip, pi), (jp, pj), (kp, pk)) = (&marks[i], &marks[j], &marks[k]);
 
                 for a in 0..9 {
                     if pi[a] || pj[a] || pk[a] {
@@ -246,12 +274,12 @@ fn find_naked_sets(pencilmarks: &[(Pos, [bool; 9])]) -> [Option<Vec<Pos>>; 9] {
     }
 
     // Naked pairs
-    for i in 0..pencilmarks.len() {
-        for j in (i + 1)..pencilmarks.len() {
+    for i in 0..marks.len() {
+        for j in (i + 1)..marks.len() {
             let mut union = [false; 9];
             let mut count = 0;
 
-            let ((ip, pi), (jp, pj)) = (&pencilmarks[i], &pencilmarks[j]);
+            let ((ip, pi), (jp, pj)) = (&marks[i], &marks[j]);
 
             for a in 0..9 {
                 if pi[a] || pj[a] {
@@ -259,6 +287,7 @@ fn find_naked_sets(pencilmarks: &[(Pos, [bool; 9])]) -> [Option<Vec<Pos>>; 9] {
                     count += 1;
                 }
             }
+
             if count == 2 {
                 for a in 0..9 {
                     if union[a] {
@@ -335,7 +364,11 @@ fn solve_sudoku(mut sudoku: Sudoku, rules: &mut [&mut dyn SetRule], counter: &mu
                 for j in 0..9 {
                     let mut cell_value = sudoku[i][j];
                     if let Cell::Pencil(pm) = extract_cell(cell_value) {
-                        for d in pm.iter().enumerate().filter_map(|(d, &b)| b.then_some(d)) {
+                        for d in 0..9 {
+                            if !pm[d] {
+                                continue;
+                            }
+
                             let mut test_sudoku = sudoku.clone();
                             test_sudoku[i][j] = d as u16 + 1;
 
@@ -434,12 +467,35 @@ mod tests {
     #[test]
     fn test_extract_digit_or_pencilmark_mask() {
         let value_digit = 0b0000_0000_0000_0101;
-        let value_pencilmark = 0b1000_0001_0101_0110;
+        let value_marks = 0b1000_0001_0101_0110;
 
         assert_eq!(extract_cell(value_digit), Cell::Digit(NonZeroU8::new(5).unwrap()));
-        assert_eq!(
-            extract_cell(value_pencilmark),
-            Cell::Pencil([false, true, true, false, true, false, true, false, true])
-        );
+        assert_eq!(extract_cell(value_marks), Cell::Pencil(Mask(0b1_0101_0110)));
+    }
+
+    #[test]
+    fn test_find_naked_sets() {
+        let pencilmarks = vec![
+            (Pos(0, 0), Mask(0b0111)),
+            (Pos(0, 1), Mask(0b0011)),
+            (Pos(0, 2), Mask(0b0101)),
+            (Pos(0, 3), Mask(0b1001)),
+        ];
+
+        let result = find_naked_sets(&pencilmarks);
+
+        let a: [Option<Vec<Pos>>; 9] = [
+            Some(vec![Pos(0, 0), Pos(0, 1), Pos(0, 2)]),
+            Some(vec![Pos(0, 0), Pos(0, 1), Pos(0, 2)]),
+            Some(vec![Pos(0, 0), Pos(0, 1), Pos(0, 2)]),
+            Some(vec![Pos(0, 0), Pos(0, 1), Pos(0, 2), Pos(0, 3)]),
+            None,
+            None,
+            None,
+            None,
+            None,
+        ];
+
+        assert_eq!(result, a);
     }
 }
