@@ -139,7 +139,8 @@ fn get_constraint(current: &[[u16; 2]; 12], dups: [u16; 3], index: usize) -> u16
     }
 }
 
-pub fn check_constraints(solution: &[[u16; 2]; 12], dups: [u16; 3]) -> bool {
+#[allow(dead_code)]
+fn check_constraints(solution: &[[u16; 2]; 12], dups: [u16; 3]) -> bool {
     let get_digit = |index: usize| -> u16 { solution[index / 2][index % 2] };
 
     let (a1, b1, c1) = (get_digit(3), get_digit(5), get_digit(8));

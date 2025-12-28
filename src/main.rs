@@ -1,11 +1,14 @@
-#![allow(dead_code)]
+/// Limited cage pair combinations solver.
+mod checker_v1;
 
-mod checker;
+/// Experimental full sudoku solver.
+#[allow(dead_code)]
 mod checker_v2;
+
 mod combinations;
 mod sums;
 
-use checker::fill_constraints;
+use checker_v1::fill_constraints;
 use combinations::compute_combinations;
 use indexmap::IndexMap;
 use std::fs::{self, File};
@@ -24,19 +27,19 @@ fn main() -> Result<()> {
 
     fs::create_dir_all("out")?;
 
-    let mut file = BufWriter::new(File::create("out/triplet_map.md")?);
+    let mut file = BufWriter::new(File::create("out/triplet_map.txt")?);
     print_triple_map(&mut file, &triplet_map)?;
     file.flush()?;
 
-    let mut file = BufWriter::new(File::create("out/pairs_sequence.md")?);
+    let mut file = BufWriter::new(File::create("out/pairs_sequence.txt")?);
     print_pairs_sequence(&mut file, &pairs_sequence)?;
     file.flush()?;
 
-    let mut file = BufWriter::new(File::create("out/combinations.md")?);
+    let mut file = BufWriter::new(File::create("out/combinations.txt")?);
     print_combinations(&mut file, &combinations)?;
     file.flush()?;
 
-    let mut file = BufWriter::new(File::create("out/solutions.md")?);
+    let mut file = BufWriter::new(File::create("out/solutions.txt")?);
     print_solutions(&mut file, &solutions)?;
     file.flush()?;
 
