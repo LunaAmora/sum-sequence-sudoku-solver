@@ -295,12 +295,22 @@ impl IndexMut<Pos> for Sudoku {
 
 impl Display for Sudoku {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for row in &self.0 {
-            for &cell in row {
-                match extract_cell(cell) {
-                    Value::Empty => write!(f, "_ ")?,
-                    Value::Digit(d) => write!(f, "{} ", d)?,
-                    Value::Pencil(_) => write!(f, ". ")?,
+        writeln!(f, " _________________")?;
+        for row in 0..9 {
+            write!(f, "|")?;
+            let empty = if (row + 1) % 3 == 0 { '_' } else { ' ' };
+
+            for col in 0..9 {
+                match extract_cell(self[(row, col)]) {
+                    Value::Empty => write!(f, "{}", empty)?,
+                    Value::Digit(d) => write!(f, "{}", d)?,
+                    Value::Pencil(_) => write!(f, ".")?,
+                }
+
+                if (col + 1) % 3 == 0 {
+                    write!(f, "|")?;
+                } else {
+                    write!(f, "{}", empty)?;
                 }
             }
             writeln!(f)?;
