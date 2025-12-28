@@ -27,19 +27,19 @@ fn main() -> Result<()> {
 
     fs::create_dir_all("out")?;
 
-    let mut file = BufWriter::new(File::create("out/triplet_map.txt")?);
+    let mut file = BufWriter::new(File::create("out/1_triplet_map.txt")?);
     print_triple_map(&mut file, &triplet_map)?;
     file.flush()?;
 
-    let mut file = BufWriter::new(File::create("out/pairs_sequence.txt")?);
+    let mut file = BufWriter::new(File::create("out/2_pairs_sequence.txt")?);
     print_pairs_sequence(&mut file, &pairs_sequence)?;
     file.flush()?;
 
-    let mut file = BufWriter::new(File::create("out/combinations.txt")?);
+    let mut file = BufWriter::new(File::create("out/3_combinations.txt")?);
     print_combinations(&mut file, &combinations)?;
     file.flush()?;
 
-    let mut file = BufWriter::new(File::create("out/solutions.txt")?);
+    let mut file = BufWriter::new(File::create("out/4_solutions.txt")?);
     print_solutions(&mut file, &solutions)?;
     file.flush()?;
 
