@@ -8,9 +8,11 @@ mod sums;
 use checker::fill_constraints;
 use combinations::compute_combinations;
 use indexmap::IndexMap;
+use std::fs::{self, File};
+use std::io::{BufWriter, Result, Write};
 use sums::*;
 
-fn main() {
+fn main() -> Result<()> {
     let pair_sums = pair_sums();
     let triplet_sums = triplet_sums();
 
@@ -20,10 +22,25 @@ fn main() {
     let combinations = get_combinations(&mut triplet_map, &mut pairs_sequence, &pair_sums);
     let solutions = get_solutions(&combinations);
 
-    // print_triple_map(&triplet_map);
-    // print_pairs_sequence(&pairs_sequence);
-    // print_combinations(&combinations);
-    print_solutions(&solutions);
+    fs::create_dir_all("out")?;
+
+    let mut file = BufWriter::new(File::create("out/triplet_map.md")?);
+    print_triple_map(&mut file, &triplet_map)?;
+    file.flush()?;
+
+    let mut file = BufWriter::new(File::create("out/pairs_sequence.md")?);
+    print_pairs_sequence(&mut file, &pairs_sequence)?;
+    file.flush()?;
+
+    let mut file = BufWriter::new(File::create("out/combinations.md")?);
+    print_combinations(&mut file, &combinations)?;
+    file.flush()?;
+
+    let mut file = BufWriter::new(File::create("out/solutions.md")?);
+    print_solutions(&mut file, &solutions)?;
+    file.flush()?;
+
+    Ok(())
 }
 
 fn get_combinations(
@@ -51,10 +68,10 @@ fn get_combinations(
     results
 }
 
-fn print_combinations(combinations: &IndexMap<Triplet, Vec<[Pair; 12]>>) {
+fn print_combinations<W: Write>(w: &mut W, combinations: &IndexMap<Triplet, Vec<[Pair; 12]>>) -> Result<()> {
     for (triplet, combination) in combinations {
         if !combination.is_empty() {
-            println!("Found {} valid combination(s) for triplet {:?}", combination.len(), triplet);
+            writeln!(w, "Found {} valid combination(s) for triplet {:?}", combination.len(), triplet)?;
 
             for sequence in combination {
                 let mut digit_count = [0; 9];
@@ -64,18 +81,20 @@ fn print_combinations(combinations: &IndexMap<Triplet, Vec<[Pair; 12]>>) {
                 }
                 let dups: Vec<usize> = (0..9).filter(|&digit| digit_count[digit] == 2).map(|i| i + 1).collect();
 
-                print!("  {:?} =", dups);
+                write!(w, "  {:?} =", dups)?;
                 for [a, b] in &sequence[0..6] {
-                    print!(" {}{}", a, b);
+                    write!(w, " {}{}", a, b)?;
                 }
-                print!(" |");
+                write!(w, " |")?;
                 for [a, b] in &sequence[6..12] {
-                    print!(" {}{}", a, b);
+                    write!(w, " {}{}", a, b)?;
                 }
-                println!();
+                writeln!(w)?;
             }
         }
     }
+
+    Ok(())
 }
 
 fn get_solutions(combinations: &IndexMap<Triplet, Vec<[Pair; 12]>>) -> IndexMap<Triplet, Vec<[Pair; 12]>> {
@@ -106,10 +125,10 @@ fn get_solutions(combinations: &IndexMap<Triplet, Vec<[Pair; 12]>>) -> IndexMap<
     solutions
 }
 
-fn print_solutions(solutions: &IndexMap<Triplet, Vec<[Pair; 12]>>) {
+fn print_solutions<W: Write>(w: &mut W, solutions: &IndexMap<Triplet, Vec<[Pair; 12]>>) -> Result<()> {
     for (triplet, solution) in solutions {
         if !solution.is_empty() {
-            println!("Found {} valid solution(s) for triplet {:?}", solution.len(), triplet);
+            writeln!(w, "Found {} valid solution(s) for triplet {:?}", solution.len(), triplet)?;
 
             for sequence in solution {
                 let mut digit_count = [0; 9];
@@ -119,16 +138,18 @@ fn print_solutions(solutions: &IndexMap<Triplet, Vec<[Pair; 12]>>) {
                 }
                 let dups: Vec<usize> = (0..9).filter(|&digit| digit_count[digit] == 2).map(|i| i + 1).collect();
 
-                print!("  {:?} =", dups);
+                write!(w, "  {:?} =", dups)?;
                 for [a, b] in &sequence[0..6] {
-                    print!(" {}{}", a, b);
+                    write!(w, " {}{}", a, b)?;
                 }
-                print!(" |");
+                write!(w, " |")?;
                 for [a, b] in &sequence[6..12] {
-                    print!(" {}{}", a, b);
+                    write!(w, " {}{}", a, b)?;
                 }
-                println!();
+                writeln!(w)?;
             }
         }
     }
+
+    Ok(())
 }

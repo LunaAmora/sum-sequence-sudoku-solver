@@ -1,4 +1,5 @@
 use indexmap::IndexMap;
+use std::io::{Result, Write};
 
 pub type Pair = [u16; 2];
 pub type Triplet = [u16; 3];
@@ -53,11 +54,12 @@ pub fn get_pairs_sequence(triplet_map: &IndexMap<Triplet, Vec<CornerTriplets>>) 
     pairs_sequence
 }
 
-pub fn print_pairs_sequence(pairs_sequence: &IndexMap<Triplet, [u16; 12]>) {
+pub fn print_pairs_sequence<W: Write>(w: &mut W, pairs_sequence: &IndexMap<Triplet, [u16; 12]>) -> Result<()> {
     for (key, sequence) in pairs_sequence {
         let key = format!("{:?}", key);
-        println!("{:12} = {:2?}", key, sequence);
+        writeln!(w, "{:12} = {:2?}", key, sequence)?;
     }
+    Ok(())
 }
 
 pub fn triplet_sums() -> Vec<Vec<Triplet>> {
@@ -111,12 +113,14 @@ fn find_unique_triplets(s1: &[Triplet], s2: &[Triplet], s3: &[Triplet]) -> Vec<C
     res
 }
 
-pub fn print_triple_map(triplet_map: &IndexMap<Triplet, Vec<CornerTriplets>>) {
+pub fn print_triple_map<W: Write>(w: &mut W, triplet_map: &IndexMap<Triplet, Vec<CornerTriplets>>) -> Result<()> {
     for (sum, triplets) in triplet_map {
-        println!("{:?}", sum);
+        writeln!(w, "{:?}", sum)?;
         for [[a1, a2, a3], [b1, b2, b3], [c1, c2, c3]] in triplets {
-            println!(" {}{}{} {}{}{} {}{}{}", a1, a2, a3, b1, b2, b3, c1, c2, c3);
+            writeln!(w, " {}{}{} {}{}{} {}{}{}", a1, a2, a3, b1, b2, b3, c1, c2, c3)?;
         }
-        println!();
+        writeln!(w)?;
     }
+
+    Ok(())
 }
