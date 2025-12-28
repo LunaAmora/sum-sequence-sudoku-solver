@@ -1,7 +1,6 @@
 use super::Pair;
 
 pub fn compute_combinations(sequence: &[u16; 12], pair_sums: &[Vec<Pair>]) -> Vec<[Pair; 12]> {
-    // Try all possible combinations of selecting one pair from each sum in the sequence
     let pair_options: [&Vec<Pair>; 12] = sequence
         .iter()
         .map(|&sum_value| &pair_sums[sum_value as usize - 4])
@@ -9,7 +8,6 @@ pub fn compute_combinations(sequence: &[u16; 12], pair_sums: &[Vec<Pair>]) -> Ve
         .try_into()
         .unwrap();
 
-    // Use backtracking to find all valid combinations
     let mut all_solutions = Vec::new();
     let mut selected_pairs = Vec::new();
     find_all_valid_combinations(&pair_options, 0, &mut selected_pairs, &mut all_solutions);
@@ -31,7 +29,6 @@ fn find_all_valid_combinations(
     all_solutions: &mut Vec<[Pair; 12]>,
 ) {
     if index == pair_options.len() {
-        // Check if this combination satisfies the constraint
         if check_frequency_constraint(selected_pairs) {
             let value = selected_pairs.clone().try_into().unwrap();
             all_solutions.push(value);
@@ -39,7 +36,6 @@ fn find_all_valid_combinations(
         return;
     }
 
-    // Try each pair option for the current position
     for &pair in pair_options[index] {
         selected_pairs.push(pair);
         find_all_valid_combinations(pair_options, index + 1, selected_pairs, all_solutions);
@@ -50,7 +46,6 @@ fn find_all_valid_combinations(
 fn check_frequency_constraint(pairs: &[Pair]) -> bool {
     let mut digit_count = [0; 9];
 
-    // Count occurrences of each digit
     for &[a, b] in pairs {
         digit_count[a as usize - 1] += 1;
         digit_count[b as usize - 1] += 1;
@@ -67,20 +62,12 @@ fn check_frequency_constraint(pairs: &[Pair]) -> bool {
         }
     }
 
-    // We need exactly 3 digits appearing 4 times, 6 digits appearing 2 times
     count_2 == 6 && dup_sum == 15
 }
 
-/// Splits a Vec<Pair> into 2 groups of 6 pairs each, maintaining frequency constraints.
-/// Returns all valid ways to split the pairs.
-/// Each group should have: 3 digits appearing 2 times, 6 digits appearing once.
 pub fn split_pairs_evenly(pairs: [Pair; 12]) -> Vec<[Pair; 12]> {
     let mut results = Vec::new();
 
-    // Generate all combinations of 6 items from 12 using bit manipulation
-    // We need combinations of 6 out of 12, which is C(12,6) = 924 combinations
-    // To avoid duplicates, we only consider masks where the first bit is set
-    // This ensures we only generate each unique split once
     for mask in 0u32..(1u32 << 12) {
         if mask.count_ones() == 6 && (mask & 1) == 1 {
             let group1 = (0..12).filter(|&i| (mask & (1 << i)) != 0).map(|i| pairs[i]);
@@ -88,8 +75,9 @@ pub fn split_pairs_evenly(pairs: [Pair; 12]) -> Vec<[Pair; 12]> {
 
             let res: [Pair; 12] = group1.chain(group2).collect::<Vec<Pair>>().try_into().unwrap();
 
-            // Check if both groups satisfy the constraint
-            if check_group_constraint(&res[0..6]) && check_group_constraint(&res[6..12]) {
+            if check_group_constraint(res[0..6].try_into().unwrap())
+                && check_group_constraint(res[6..12].try_into().unwrap())
+            {
                 results.push(res);
             }
         }
@@ -98,18 +86,14 @@ pub fn split_pairs_evenly(pairs: [Pair; 12]) -> Vec<[Pair; 12]> {
     results
 }
 
-/// Checks if a group of 6 pairs satisfies the constraint:
-/// 3 digits appearing 2 times, 6 digits appearing once
-fn check_group_constraint(pairs: &[Pair]) -> bool {
+fn check_group_constraint(pairs: [Pair; 6]) -> bool {
     let mut digit_count = [0; 9];
 
-    // Count occurrences of each digit
-    for &[a, b] in pairs {
+    for [a, b] in pairs {
         digit_count[a as usize - 1] += 1;
         digit_count[b as usize - 1] += 1;
     }
 
-    // Count how many digits appear exactly 2 times and exactly 1 time
     let mut count_2 = 0;
     let mut count_1 = 0;
 
@@ -121,7 +105,6 @@ fn check_group_constraint(pairs: &[Pair]) -> bool {
         }
     }
 
-    // We need exactly 3 digits appearing 2 times, 6 digits appearing 1 time
     count_2 == 3 && count_1 == 6
 }
 

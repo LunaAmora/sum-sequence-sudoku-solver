@@ -213,13 +213,13 @@ fn find_naked_sets(marks: &[CellMask]) -> [Option<Vec<Pos>>; 9] {
     let mut result = [const { None }; 9];
 
     fn check_combination(marks: &[CellMask], indices: &[usize], result: &mut [Option<Vec<Pos>>; 9]) {
-        let mut union = [false; 9];
+        let mut digits = [false; 9];
         let mut count = 0;
 
         for &idx in indices {
-            for (i, union) in union.iter_mut().enumerate() {
-                if marks[idx].1[i] && !*union {
-                    *union = true;
+            for (i, digit) in digits.iter_mut().enumerate() {
+                if !*digit && marks[idx].1[i] {
+                    *digit = true;
                     count += 1;
                 }
             }
@@ -228,18 +228,20 @@ fn find_naked_sets(marks: &[CellMask]) -> [Option<Vec<Pos>>; 9] {
         if count == indices.len() {
             let positions: Vec<Pos> = indices.iter().map(|&idx| marks[idx].0).collect();
             for i in 0..9 {
-                if union[i] {
+                if digits[i] {
                     result[i] = Some(positions.clone());
                 }
             }
         }
     }
 
+    let len = marks.len();
+
     // Naked quads
-    for i in 0..marks.len() {
-        for j in (i + 1)..marks.len() {
-            for k in (j + 1)..marks.len() {
-                for l in (k + 1)..marks.len() {
+    for i in 0..len {
+        for j in (i + 1)..len {
+            for k in (j + 1)..len {
+                for l in (k + 1)..len {
                     check_combination(marks, &[i, j, k, l], &mut result);
                 }
             }
@@ -247,17 +249,17 @@ fn find_naked_sets(marks: &[CellMask]) -> [Option<Vec<Pos>>; 9] {
     }
 
     // Naked triplets
-    for i in 0..marks.len() {
-        for j in (i + 1)..marks.len() {
-            for k in (j + 1)..marks.len() {
+    for i in 0..len {
+        for j in (i + 1)..len {
+            for k in (j + 1)..len {
                 check_combination(marks, &[i, j, k], &mut result);
             }
         }
     }
 
     // Naked pairs
-    for i in 0..marks.len() {
-        for j in (i + 1)..marks.len() {
+    for i in 0..len {
+        for j in (i + 1)..len {
             check_combination(marks, &[i, j], &mut result);
         }
     }

@@ -28,7 +28,7 @@ const CONSTRAINT_MASKS: [u32; 24] = [
     1<<10 | 1<<11 | 1<<16 | 1<<17 | 1<<19 | 1<<21,
 ];
 
-pub fn fill_constraints(set: &[Pair], dups: [u16; 3], results: &mut Vec<[[u16; 2]; 12]>) {
+pub fn fill_constraints(set: &[Pair; 12], dups: [u16; 3], results: &mut Vec<[[u16; 2]; 12]>) {
     fill_constraints_internal([[0, 0]; 12], 0, set, dups, results);
 }
 
@@ -100,7 +100,7 @@ fn apply_constraints(current: &mut [[u16; 2]; 12], index: usize, digit_a: u16, d
 fn apply_digit_constraints_to_positions(current: &mut [[u16; 2]; 12], mut position_mask: u32, forbidden_digit: u16) {
     while position_mask != 0 {
         let position = position_mask.trailing_zeros() as usize;
-        position_mask &= position_mask - 1; // Clear the lowest set bit
+        position_mask &= position_mask - 1;
         let constraint = &mut current[position / 2][position % 2];
         add_forbidden_digit_to_constraint(constraint, forbidden_digit);
     }
@@ -109,7 +109,6 @@ fn apply_digit_constraints_to_positions(current: &mut [[u16; 2]; 12], mut positi
 const DIGIT_MASK: u16 = 0x3FE; // Bits 1-9 for Sudoku digits
 const FORBIDDEN_FLAG: u16 = 0x8000; // Bit 15: constraint type flag
 
-/// Adds a forbidden digit to a constraint position
 fn add_forbidden_digit_to_constraint(constraint: &mut u16, digit: u16) {
     if *constraint & FORBIDDEN_FLAG != 0 || *constraint == 0 {
         let current_forbidden_mask = *constraint & DIGIT_MASK;
@@ -118,7 +117,6 @@ fn add_forbidden_digit_to_constraint(constraint: &mut u16, digit: u16) {
     }
 }
 
-/// Extracts the forbidden digit bitmask from a u16 constraint
 fn extract_forbidden_digit_mask(constraint_value: u16) -> u16 {
     if constraint_value & FORBIDDEN_FLAG != 0 { constraint_value & DIGIT_MASK } else { 0 }
 }
@@ -179,7 +177,7 @@ mod tests {
         let mut results = vec![];
 
         let dups = [1, 6, 8];
-        let set = vec![[1, 3], [1, 6], [2, 7], [4, 8], [5, 8], [6, 9], [1, 4], [1, 5], [2, 6], [3, 8], [6, 8], [7, 9]];
+        let set = [[1, 3], [1, 6], [2, 7], [4, 8], [5, 8], [6, 9], [1, 4], [1, 5], [2, 6], [3, 8], [6, 8], [7, 9]];
 
         fill_constraints(&set, dups, &mut results);
 
