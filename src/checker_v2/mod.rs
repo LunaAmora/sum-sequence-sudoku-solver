@@ -1,3 +1,5 @@
+mod sum_sequence;
+
 use std::{
     fmt::Display,
     num::NonZeroU8,
@@ -157,8 +159,7 @@ impl SetRule for RowRule {
         let mut result = [CellValue::default(); 9];
 
         for (i, res) in result.iter_mut().enumerate() {
-            let pos = (self.counter, i);
-            *res = (pos, extract_cell(sudoku[pos]));
+            *res = sudoku.cell_value((self.counter, i));
         }
 
         self.counter = (self.counter + 1) % 9;
@@ -176,8 +177,7 @@ impl SetRule for ColRule {
         let mut result = [CellValue::default(); 9];
 
         for (i, res) in result.iter_mut().enumerate() {
-            let pos = (i, self.counter);
-            *res = (pos, extract_cell(sudoku[pos]));
+            *res = sudoku.cell_value((i, self.counter));
         }
 
         self.counter = (self.counter + 1) % 9;
@@ -199,8 +199,7 @@ impl SetRule for BoxRule {
 
         for i in 0..3 {
             for j in 0..3 {
-                let pos = (box_row + i, box_col + j);
-                result[i * 3 + j] = (pos, extract_cell(sudoku[pos]));
+                result[i * 3 + j] = sudoku.cell_value((box_row + i, box_col + j));
             }
         }
 
@@ -273,6 +272,12 @@ fn get_single_digit(value: u16) -> Option<u16> {
 
 #[derive(Debug, PartialEq, Clone)]
 struct Sudoku([[u16; 9]; 9]);
+
+impl Sudoku {
+    fn cell_value(&self, pos: Pos) -> CellValue {
+        (pos, extract_cell(self[pos]))
+    }
+}
 
 impl Index<Pos> for Sudoku {
     type Output = u16;
