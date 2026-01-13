@@ -121,21 +121,22 @@ fn extract_forbidden_digit_mask(constraint_value: u16) -> u16 {
     if constraint_value & FORBIDDEN_FLAG != 0 { constraint_value & DIGIT_MASK } else { 0 }
 }
 
+const INDEXES: [usize; 6] = [3, 5, 8, 15, 17, 20];
+
 fn get_constraint(current: &[[u16; 2]; 12], dups: [u16; 3], index: usize) -> u16 {
-    match index {
-        i @ (3 | 5 | 8 | 15 | 17 | 20) => {
-            let y = (i + 12) % 24;
-            let (div, rem) = (y / 2, y % 2);
+    if INDEXES.contains(&index) {
+        let y = (index + 12) % 24;
+        let (div, rem) = (y / 2, y % 2);
 
-            let constraint_value = current[div][rem];
+        let constraint_value = current[div][rem];
 
-            if constraint_value > 0 && constraint_value & FORBIDDEN_FLAG == 0 {
-                1 << constraint_value
-            } else {
-                dups.iter().fold(0u16, |mask, &digit| mask | (1 << digit))
-            }
+        if constraint_value > 0 && constraint_value & FORBIDDEN_FLAG == 0 {
+            1 << constraint_value
+        } else {
+            dups.iter().fold(0u16, |mask, &digit| mask | (1 << digit))
         }
-        _ => 0,
+    } else {
+        0
     }
 }
 
@@ -143,8 +144,8 @@ fn get_constraint(current: &[[u16; 2]; 12], dups: [u16; 3], index: usize) -> u16
 fn check_constraints(solution: &[[u16; 2]; 12], dups: [u16; 3]) -> bool {
     let get_digit = |index: usize| -> u16 { solution[index / 2][index % 2] };
 
-    let (a1, b1, c1) = (get_digit(3), get_digit(5), get_digit(8));
-    let (a2, b2, c2) = (get_digit(15), get_digit(17), get_digit(20));
+    let (a1, b1, c1) = (get_digit(INDEXES[0]), get_digit(INDEXES[1]), get_digit(INDEXES[2]));
+    let (a2, b2, c2) = (get_digit(INDEXES[3]), get_digit(INDEXES[4]), get_digit(INDEXES[5]));
 
     if a1 != a2 || b1 != b2 || c1 != c2 {
         return false;
