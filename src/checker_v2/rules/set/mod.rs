@@ -4,25 +4,25 @@ pub mod col;
 pub mod row;
 
 use super::Rule;
-use crate::checker_v2::{CellMask, CellValue, Mask, Pos, Sudoku, Value};
+use crate::checker_v2::{CellEntry, CellMask, Entry, Mask, Pos, Sudoku, Value};
 
 trait SetRule {
-    fn next_set(&mut self, sudoku: &Sudoku) -> [CellValue; 9];
+    fn next_set(&mut self, sudoku: &Sudoku) -> [CellEntry; 9];
 }
 
 impl<T: SetRule> Rule for T {
     fn update_cells(&mut self, sudoku: &mut Sudoku) -> Result<(), ()> {
-        let mut allowed_digits = Mask(0b111111111);
+        let mut allowed_digits = Mask::ALL;
         let mut pencilmarks: Vec<CellMask> = Vec::new();
         let mut empty_cells: Vec<Pos> = Vec::new();
 
         let set = self.next_set(sudoku);
 
-        for &(pos, value) in set.iter() {
-            match value {
-                Value::Empty => empty_cells.push(pos),
-                Value::Digit(d) => allowed_digits.set((d.get() - 1) as usize, false),
-                Value::Pencil(pm) => pencilmarks.push((pos, pm)),
+        for &(pos, entry) in set.iter() {
+            match entry {
+                Entry::Empty => empty_cells.push(pos),
+                Entry::Digit(digit) => allowed_digits.set_digit(digit, false),
+                Entry::Pencil(pm) => pencilmarks.push((pos, pm)),
             }
         }
 
@@ -33,7 +33,7 @@ impl<T: SetRule> Rule for T {
         for pm in &mut pencilmarks {
             for i in 0..9 {
                 if !allowed_digits[i] {
-                    pm.1.set(i, false);
+                    pm.1.set_bit(i, false);
                 }
             }
         }
@@ -55,7 +55,7 @@ impl<T: SetRule> Rule for T {
                 }
 
                 if pm[i] {
-                    pm.set(i, false);
+                    pm.set_bit(i, false);
                 }
             }
         }
@@ -65,13 +65,13 @@ impl<T: SetRule> Rule for T {
 
             let new_value = match count {
                 0 => return Err(()),
-                1 => pm.0.trailing_zeros() as u16 + 1,
+                1 => pm.0.trailing_zeros() as Value + 1,
                 _ => {
-                    let mut pm_value = *pm;
-                    pm_value.set(15, true);
+                    let Mask(mut pm_value) = *pm;
+                    pm_value |= 1 << 15;
 
                     if pm_value != sudoku[*pos] {
-                        pm_value.0
+                        pm_value
                     } else {
                         continue;
                     }

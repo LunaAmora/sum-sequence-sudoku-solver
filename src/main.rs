@@ -2,13 +2,13 @@
 mod checker_v1;
 
 /// Experimental full sudoku solver.
-#[allow(dead_code)]
 mod checker_v2;
 
 mod combinations;
 mod sums;
 
 use checker_v1::fill_constraints;
+use checker_v2::{SolveResult, Sudoku, solve_sudoku};
 use combinations::compute_combinations;
 use indexmap::IndexMap;
 use std::fs::{self, File};
@@ -16,6 +16,10 @@ use std::io::{BufWriter, Result, Write};
 use sums::*;
 
 fn main() -> Result<()> {
+    if true { checker_v1() } else { checker_v2() }
+}
+
+fn checker_v1() -> Result<()> {
     let pair_sums = pair_sums();
     let triplet_sums = triplet_sums();
 
@@ -44,6 +48,18 @@ fn main() -> Result<()> {
     file.flush()?;
 
     Ok(())
+}
+
+fn checker_v2() -> Result<()> {
+    let sudoku = Sudoku::default();
+    let result = solve_sudoku(sudoku);
+
+    match result {
+        SolveResult::Solved(_c, _s) => todo!(),
+        SolveResult::Unsolvable => todo!(),
+        SolveResult::Stuck(_c) => todo!(),
+        SolveResult::LimitReached(_c, _s) => todo!(),
+    }
 }
 
 fn get_combinations(

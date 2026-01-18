@@ -1,5 +1,5 @@
 use super::SetRule;
-use crate::checker_v2::{CellValue, Sudoku};
+use crate::checker_v2::{CellEntry, Sudoku};
 
 #[derive(Default)]
 pub struct BoxRule {
@@ -7,15 +7,15 @@ pub struct BoxRule {
 }
 
 impl SetRule for BoxRule {
-    fn next_set(&mut self, sudoku: &Sudoku) -> [CellValue; 9] {
+    fn next_set(&mut self, sudoku: &Sudoku) -> [CellEntry; 9] {
         let box_row = (self.counter / 3) * 3;
         let box_col = (self.counter % 3) * 3;
 
-        let mut result = [CellValue::default(); 9];
+        let mut result = [CellEntry::default(); 9];
 
         for i in 0..3 {
             for j in 0..3 {
-                result[i * 3 + j] = sudoku.cell_value((box_row + i, box_col + j));
+                result[i * 3 + j] = sudoku.cell_entry((box_row + i, box_col + j));
             }
         }
 

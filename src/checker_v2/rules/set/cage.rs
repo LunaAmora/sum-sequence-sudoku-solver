@@ -1,5 +1,5 @@
 use super::SetRule;
-use crate::checker_v2::{CellValue, Pos, Sudoku};
+use crate::checker_v2::{CellEntry, Pos, Sudoku};
 
 /// A rule that returns the sets constructed from the caged pairs in the sum-sequence Sudoku.        
 /// ```txt
@@ -39,12 +39,12 @@ impl Default for CageRule {
 }
 
 impl SetRule for CageRule {
-    fn next_set(&mut self, sudoku: &Sudoku) -> [CellValue; 9] {
-        let mut result = [CellValue::default(); 9];
+    fn next_set(&mut self, sudoku: &Sudoku) -> [CellEntry; 9] {
+        let mut result = [CellEntry::default(); 9];
 
         for (i, res) in result.iter_mut().enumerate() {
             let pos = self.sets[self.counter][i];
-            *res = sudoku.cell_value(pos);
+            *res = sudoku.cell_entry(pos);
         }
 
         self.counter = (self.counter + 1) % self.sets.len();
