@@ -6,9 +6,37 @@ The colors show the intended set logic (gray == yellow).
 
 https://f-puzzles.com/?id=23hb5lph
 
+### Cages
+```
+ _________________
+|    0|  0  |0    |
+|    0|  0  |0    |
+|1_1__|_____|__1_1|
+|     |     |     |
+|1 1  |     |  1 1|
+|_____|_____|_____|
+|1 1  |     |  1 1|
+|    0|  0  |0    |
+|____0|__0__|0____|
+```
+
+### Palindromes
+```
+ _________________
+|     |     |     |
+|     |  1  |2    |
+|_____|1___2|_____|
+|    1|  3  |4    |
+|  1  |3   4|  6  |
+|____3|__5__|6____|
+|  3  |5   6|     |
+|     |  6  |     |
+|_____|_____|_____|
+```
+
 Todo:
-- [ ] Find where to put the 3 missing triplet cages on the corners
-- [ ] Force palindrome deduction 
+- [ ] Find where to put the 3 missing triplet cages on the corner boxes
+- [ ] Force palindrome deduction (Digit inside the cage from palindrome 3 must be the same as the one from palindrome 2)
 
 ## Rules
 

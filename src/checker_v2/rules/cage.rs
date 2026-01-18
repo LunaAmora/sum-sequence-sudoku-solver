@@ -4,8 +4,8 @@ use crate::checker_v2::{CellEntry, Entry, Pos, Sudoku};
 /// A rule that returns the missing cages in the sum-sequence Sudoku.        
 /// ```txt
 ///  _________________
-/// |     |  1  |  2  |
-/// |     |  1  |  2  |
+/// |     |  1  |2    |
+/// |     |  1  |2    |
 /// |_____|_____|_____|
 /// |     |     |     |
 /// |3 3  |     |  4 4|
