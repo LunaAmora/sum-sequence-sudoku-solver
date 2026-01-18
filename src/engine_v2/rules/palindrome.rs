@@ -1,5 +1,5 @@
-use crate::checker_v2::rules::Rule;
-use crate::checker_v2::{CellEntry, Entry, Mask, Pos, Sudoku};
+use crate::engine_v2::rules::Rule;
+use crate::engine_v2::{CellEntry, Entry, Mask, Pos, Sudoku};
 
 /// A rule that returns the palindrome in the sum-sequence Sudoku.        
 /// ```txt

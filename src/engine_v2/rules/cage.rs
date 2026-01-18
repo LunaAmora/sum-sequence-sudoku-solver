@@ -1,5 +1,5 @@
-use crate::checker_v2::rules::Rule;
-use crate::checker_v2::{CellEntry, Entry, Pos, Sudoku};
+use crate::engine_v2::rules::Rule;
+use crate::engine_v2::{CellEntry, Entry, Pos, Sudoku};
 
 /// A rule that returns the missing cages in the sum-sequence Sudoku.        
 /// ```txt
@@ -84,7 +84,7 @@ impl CageRule {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::checker_v2::Mask;
+    use crate::engine_v2::Mask;
 
     #[test]
     fn test_digit_and_pencilmark() {

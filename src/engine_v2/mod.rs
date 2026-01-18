@@ -234,7 +234,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_checker() {
+    fn test_engine() {
         let sudoku = Sudoku([
             [0, 6, 0, 8, 0, 0, 0, 0, 0],
             [4, 0, 0, 0, 0, 5, 0, 8, 0],

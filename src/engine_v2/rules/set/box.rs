@@ -1,5 +1,5 @@
 use super::SetRule;
-use crate::checker_v2::{CellEntry, Sudoku};
+use crate::engine_v2::{CellEntry, Sudoku};
 
 #[derive(Default)]
 pub struct BoxRule {

@@ -1,5 +1,5 @@
 use super::SetRule;
-use crate::checker_v2::{CellEntry, Pos, Sudoku};
+use crate::engine_v2::{CellEntry, Pos, Sudoku};
 
 /// A rule that returns the sets constructed from the caged pairs in the sum-sequence Sudoku.        
 /// ```txt

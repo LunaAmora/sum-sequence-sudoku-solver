@@ -1,17 +1,17 @@
 use super::SetRule;
-use crate::checker_v2::{CellEntry, Sudoku};
+use crate::engine_v2::{CellEntry, Sudoku};
 
 #[derive(Default)]
-pub struct ColRule {
+pub struct RowRule {
     counter: usize,
 }
 
-impl SetRule for ColRule {
+impl SetRule for RowRule {
     fn next_set(&mut self, sudoku: &Sudoku) -> [CellEntry; 9] {
         let mut result = [CellEntry::default(); 9];
 
         for (i, res) in result.iter_mut().enumerate() {
-            *res = sudoku.cell_entry((i, self.counter));
+            *res = sudoku.cell_entry((self.counter, i));
         }
 
         self.counter = (self.counter + 1) % 9;

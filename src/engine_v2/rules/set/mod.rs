@@ -4,7 +4,7 @@ pub mod col;
 pub mod row;
 
 use super::Rule;
-use crate::checker_v2::{CellEntry, CellMask, Entry, Mask, Pos, Sudoku, Value};
+use crate::engine_v2::{CellEntry, CellMask, Entry, Mask, Pos, Sudoku, Value};
 
 trait SetRule {
     fn next_set(&mut self, sudoku: &Sudoku) -> [CellEntry; 9];
