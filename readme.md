@@ -2,9 +2,22 @@
 This is a program to generate solutions for a sudoku ruleset i'm experimenting with.
 
 ## Board setup
-The colors show the intended set logic (gray == yellow).
 
 https://f-puzzles.com/?id=23hb5lph
+
+### Palindromes
+```
+ _________________
+|     |     |     |
+|     |  1  |2    |
+|_____|1___2|_____|
+|    1|  3  |4    |
+|  1  |3   4|  6  |
+|____3|__5__|6____|
+|  3  |5   6|     |
+|     |  6  |     |
+|_____|_____|_____|
+```
 
 ### Cages
 ```
@@ -20,18 +33,18 @@ https://f-puzzles.com/?id=23hb5lph
 |____0|__0__|0____|
 ```
 
-### Palindromes
+### Set deduction
 ```
  _________________
+|    0|  0  |0    |
+|    0|     |     |
+|1_1__|_____|__1_1|
 |     |     |     |
-|     |  1  |2    |
-|_____|1___2|_____|
-|    1|  3  |4    |
-|  1  |3   4|  6  |
-|____3|__5__|6____|
-|  3  |5   6|     |
-|     |  6  |     |
+|1    |     |    1|
 |_____|_____|_____|
+|1    |     |  1 1|
+|    0|     |0    |
+|____0|__0__|0____|
 ```
 
 Todo:
