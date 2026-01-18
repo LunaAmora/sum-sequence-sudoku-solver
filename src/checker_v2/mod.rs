@@ -205,7 +205,7 @@ fn solve(mut sudoku: Sudoku, rules: &mut [&mut dyn rules::Rule], counter: &mut u
     }
 }
 
-pub fn solve_sudoku(sudoku: Sudoku) -> SolveResult {
+pub fn solve_sudoku(sudoku: Sudoku, sum_sequence: bool) -> SolveResult {
     use rules::*;
 
     let mut row_rule = RowRule::default();
@@ -214,6 +214,17 @@ pub fn solve_sudoku(sudoku: Sudoku) -> SolveResult {
     let mut rules: Vec<&mut dyn Rule> = vec![&mut box_rule, &mut col_rule, &mut row_rule];
 
     let mut counter = 0;
+
+    if sum_sequence {
+        let mut cage_rule = CageRule::default();
+        let mut palindrome_rule = PalindromeRule::default();
+        let mut set_cage_rule = SetCageRule::default();
+
+        rules.push(&mut cage_rule);
+        rules.push(&mut palindrome_rule);
+        rules.push(&mut set_cage_rule);
+        return solve(sudoku, &mut rules, &mut counter);
+    }
 
     solve(sudoku, &mut rules, &mut counter)
 }
@@ -250,7 +261,7 @@ mod tests {
 
         let start = std::time::Instant::now();
 
-        let result = solve_sudoku(sudoku);
+        let result = solve_sudoku(sudoku, false);
 
         let duration = start.elapsed();
         println!("Time elapsed in solve_sudoku() is: {:?}", duration);

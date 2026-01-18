@@ -52,7 +52,7 @@ fn checker_v1() -> Result<()> {
 
 fn checker_v2() -> Result<()> {
     let sudoku = Sudoku::default();
-    let result = solve_sudoku(sudoku);
+    let result = solve_sudoku(sudoku, true);
 
     match result {
         SolveResult::Solved(_c, _s) => todo!(),
