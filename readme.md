@@ -1,7 +1,42 @@
 ## What is this?
 This is a program to generate solutions for a sudoku ruleset i'm experimenting with.
 
-## Board setup
+## Usage
+
+### CLI
+
+```bash
+# Solve using default settings (engine v2, standard rules, sudoku.txt)
+cargo run
+
+# Use extended sum-sequence rules
+cargo run -- --sum-sequence
+
+# Specify a custom sudoku file
+cargo run -- --file path/to/puzzle.txt
+
+# Override iteration limit (default: 2000000)
+cargo run -- --limit 5000000
+
+# Use engine v1 (cage pair combinations generator)
+cargo run -- --engine 1
+
+# Show help
+cargo run -- --help
+```
+
+### Input Format
+
+Sudoku files should contain 9 rows of 9 numbers (0 for empty cells), separated by spaces or commas:
+
+```
+0 6 0 8 0 0 0 0 0
+4 0 0 0 0 5 0 8 0
+0 3 7 0 0 0 0 0 0
+...
+```
+
+## Sum Sequence Puzzle Board setup
 
 https://f-puzzles.com/?id=23hb5lph
 

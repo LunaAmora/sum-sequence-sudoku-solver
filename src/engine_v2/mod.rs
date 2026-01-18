@@ -96,7 +96,7 @@ type CellEntry = (Pos, Entry);
 type CellMask = (Pos, Mask);
 
 #[derive(Debug, PartialEq, Clone, Default)]
-pub struct Sudoku([[Value; 9]; 9]);
+pub struct Sudoku(pub [[Value; 9]; 9]);
 
 impl Sudoku {
     fn cell_entry(&self, pos: Pos) -> CellEntry {
@@ -144,14 +144,16 @@ impl Display for Sudoku {
     }
 }
 
-pub enum SolveResult {
-    Solved(usize, Sudoku),
+pub enum State {
+    Solved,
     Unsolvable,
-    Stuck(usize),
-    LimitReached(usize, Sudoku),
+    Stuck,
+    LimitReached,
 }
 
-fn solve(mut sudoku: Sudoku, rules: &mut [&mut dyn rules::Rule], counter: &mut usize) -> SolveResult {
+pub struct SolveResult(pub usize, pub Sudoku, pub State);
+
+fn solve(mut sudoku: Sudoku, rules: &mut [&mut dyn rules::Rule], counter: &mut usize, limit: usize) -> SolveResult {
     loop {
         let old_sudoku = sudoku.clone();
 
@@ -159,7 +161,7 @@ fn solve(mut sudoku: Sudoku, rules: &mut [&mut dyn rules::Rule], counter: &mut u
             for rule in &mut *rules {
                 *counter += 1;
                 if rule.update_cells(&mut sudoku).is_err() {
-                    return SolveResult::Unsolvable;
+                    return SolveResult(*counter, sudoku, State::Unsolvable);
                 }
             }
         }
@@ -178,7 +180,7 @@ fn solve(mut sudoku: Sudoku, rules: &mut [&mut dyn rules::Rule], counter: &mut u
                             let mut test_sudoku = sudoku.clone();
                             test_sudoku[(i, j)] = d as Value + 1;
 
-                            if let SolveResult::Unsolvable = solve(test_sudoku, rules, counter) {
+                            if let SolveResult(_, _, State::Unsolvable) = solve(test_sudoku, rules, counter, limit) {
                                 progress = true;
                                 cell_value &= !(1 << d);
                                 sudoku[(i, j)] = cell_value;
@@ -191,23 +193,23 @@ fn solve(mut sudoku: Sudoku, rules: &mut [&mut dyn rules::Rule], counter: &mut u
             if progress {
                 continue;
             } else {
-                return SolveResult::Stuck(*counter);
+                return SolveResult(*counter, sudoku, State::Stuck);
             }
         }
 
         let done = sudoku.0.iter().all(|row| row.iter().all(|&cell| matches!(cell.into(), Entry::Digit(_))));
 
         if done {
-            return SolveResult::Solved(*counter, sudoku);
+            return SolveResult(*counter, sudoku, State::Solved);
         }
 
-        if *counter >= 2000000 {
-            return SolveResult::LimitReached(*counter, sudoku);
+        if *counter >= limit {
+            return SolveResult(*counter, sudoku, State::LimitReached);
         }
     }
 }
 
-pub fn solve_sudoku(sudoku: Sudoku, sum_sequence: bool) -> SolveResult {
+pub fn solve_sudoku(sudoku: Sudoku, sum_sequence: bool, limit: usize) -> SolveResult {
     use rules::*;
 
     let mut row_rule = RowRule::default();
@@ -225,10 +227,10 @@ pub fn solve_sudoku(sudoku: Sudoku, sum_sequence: bool) -> SolveResult {
         rules.push(&mut cage_rule);
         rules.push(&mut palindrome_rule);
         rules.push(&mut set_cage_rule);
-        return solve(sudoku, &mut rules, &mut counter);
+        return solve(sudoku, &mut rules, &mut counter, limit);
     }
 
-    solve(sudoku, &mut rules, &mut counter)
+    solve(sudoku, &mut rules, &mut counter, limit)
 }
 
 #[cfg(test)]
@@ -263,26 +265,28 @@ mod tests {
 
         let start = std::time::Instant::now();
 
-        let result = solve_sudoku(sudoku, false);
+        let result = solve_sudoku(sudoku, false, 2_000_000);
 
         let duration = start.elapsed();
         println!("Time elapsed in solve_sudoku() is: {:?}", duration);
 
-        match result {
-            SolveResult::Solved(counter, sudoku) => {
+        let SolveResult(counter, sudoku, state) = result;
+
+        match state {
+            State::Solved => {
                 println!("Solved in {} iterations", counter);
                 println!("Resulting Sudoku:\n{}", sudoku);
                 assert_eq!(sudoku, solution);
             }
-            SolveResult::Unsolvable => {
+            State::Unsolvable => {
                 println!("Sudoku is unsolvable");
                 panic!("Should have been solvable");
             }
-            SolveResult::Stuck(counter) => {
+            State::Stuck => {
                 println!("No progress made after {} iterations", counter);
                 panic!("Should have been solvable");
             }
-            SolveResult::LimitReached(counter, sudoku) => {
+            State::LimitReached => {
                 println!("Reached iteration limit: {}", counter);
                 println!("Resulting Sudoku:\n{}", sudoku);
                 panic!("Should have been solved before reaching limit");
