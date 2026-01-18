@@ -6,13 +6,15 @@ use std::{
     ops::{Index, IndexMut},
 };
 
-//   0 for number, 1 for pencilmark
-//   |
-// 0b1000 0000 0000 0000
-//           |      |
-//           |      digits 1-9
-//           |
-//           1-9 pencilmarks for digits 1-9
+///```txt
+///   0 for number, 1 for pencilmark
+///   |
+/// 0b1000 0000 0000 0000
+///           |      |
+///           |      digits 1-9
+///           |
+///           1-9 pencilmarks for digits 1-9
+/// ```
 type Value = u16;
 
 /// A bitmask representing possible pencilmarks for digits 1-9.
@@ -65,8 +67,8 @@ impl From<Mask> for Value {
     }
 }
 
-// Represents the content of a cell: either empty, a digit, or a pencilmark mask.
-// Used to simplify working with raw cell values.
+/// Represents the content of a cell: either empty, a digit, or a pencilmark mask.
+/// Used to simplify working with raw cell values.
 #[derive(PartialEq, Debug, Clone, Copy, Default)]
 enum Entry {
     #[default]

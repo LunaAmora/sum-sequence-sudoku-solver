@@ -106,8 +106,10 @@ fn apply_digit_constraints_to_positions(current: &mut [[u16; 2]; 12], mut positi
     }
 }
 
-const DIGIT_MASK: u16 = 0x3FE; // Bits 1-9 for Sudoku digits
-const FORBIDDEN_FLAG: u16 = 0x8000; // Bit 15: constraint type flag
+/// Bits 1-9 for Sudoku digits
+const DIGIT_MASK: u16 = 0x3FE;
+/// Bit 15: constraint type flag
+const FORBIDDEN_FLAG: u16 = 0x8000;
 
 fn add_forbidden_digit_to_constraint(constraint: &mut u16, digit: u16) {
     if *constraint & FORBIDDEN_FLAG != 0 || *constraint == 0 {
